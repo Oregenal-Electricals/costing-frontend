@@ -216,3 +216,71 @@ export async function apiToggleMaster<T>(token: string, entity: MasterEntity, id
 export async function apiGetActiveShifts(token: string): Promise<ShiftItem[]> {
   return apiFetch<ShiftItem[]>('/api/v1/master/shifts/active', token);
 }
+
+// ─── RATE TARGET MASTER ──────────────────────────────
+
+export interface RateTarget {
+  id: number;
+  productId: number;
+  customerId: number;
+  processId: number;
+  hourlyRate: string;
+  targetPerHour: string;
+  ratePerPiece: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  remarks: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  product: { id: number; code: string; name: string };
+  customer: { id: number; code: string; name: string };
+  process: { id: number; code: string; name: string };
+  users: { id: number; name: string; employeeCode: string } | null;
+}
+
+export interface RateTargetQuery {
+  search?: string;
+  productId?: number;
+  customerId?: number;
+  processId?: number;
+  effectiveFrom?: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function apiGetRateTargets(token: string, query?: RateTargetQuery): Promise<PaginatedResponse<RateTarget>> {
+  const q = new URLSearchParams();
+  if (query?.search) q.set('search', query.search);
+  if (query?.productId) q.set('productId', String(query.productId));
+  if (query?.customerId) q.set('customerId', String(query.customerId));
+  if (query?.processId) q.set('processId', String(query.processId));
+  if (query?.effectiveFrom) q.set('effectiveFrom', query.effectiveFrom);
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch<PaginatedResponse<RateTarget>>(`/api/v1/rate-targets?${q}`, token);
+}
+
+export async function apiCreateRateTarget(token: string, data: object): Promise<RateTarget> {
+  return apiFetch<RateTarget>('/api/v1/rate-targets', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateRateTarget(token: string, id: number, data: object): Promise<RateTarget> {
+  return apiFetch<RateTarget>(`/api/v1/rate-targets/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function apiToggleRateTarget(token: string, id: number): Promise<RateTarget> {
+  return apiFetch<RateTarget>(`/api/v1/rate-targets/${id}/toggle`, token, { method: 'PATCH' });
+}
+
+export async function apiGetActiveProducts(token: string): Promise<MasterItem[]> {
+  return apiFetch<MasterItem[]>('/api/v1/master/products/active', token);
+}
+
+export async function apiGetActiveCustomers(token: string): Promise<MasterItem[]> {
+  return apiFetch<MasterItem[]>('/api/v1/master/customers/active', token);
+}
+
+export async function apiGetActiveProcesses(token: string): Promise<MasterItem[]> {
+  return apiFetch<MasterItem[]>('/api/v1/master/processes/active', token);
+}

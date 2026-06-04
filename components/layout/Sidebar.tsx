@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, ArrowLeftRight,
   Factory, CheckSquare, BarChart2, Database, UserCog,
-  Settings, ChevronDown, ChevronRight, Zap, Menu, X, LogOut,
+  Settings, ChevronDown, ChevronRight, Zap, Menu, X, LogOut, Target,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { NAV_ITEMS, APP_NAME } from "@/lib/constants";
@@ -24,6 +24,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Database: <Database size={18} />,
   UserCog: <UserCog size={18} />,
   Settings: <Settings size={18} />,
+  Target: <Target size={18} />,
 };
 
 export default function Sidebar() {

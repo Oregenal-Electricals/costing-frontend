@@ -23,6 +23,7 @@ export const NAV_ITEMS = [
   {
     group: "Admin",
     items: [
+      { label: "Rate Targets", href: "/rate-targets", icon: "Target" },
       { label: "Master Data", href: "/master-data", icon: "Database" },
       { label: "User Management", href: "/users", icon: "UserCog" },
       { label: "Backup & Settings", href: "/settings", icon: "Settings" },
