@@ -149,3 +149,70 @@ export async function apiResetPassword(token: string, id: number, newPassword: s
     body: JSON.stringify({ newPassword }),
   });
 }
+
+// ─── MASTER DATA ─────────────────────────────────────
+
+export interface MasterItem {
+  id: number;
+  code?: string;
+  name: string;
+  description?: string | null;
+  unit?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  [key: string]: unknown;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ShiftItem extends MasterItem {
+  type: string;
+  startTime: string;
+  endTime: string;
+  timeSlots?: TimeSlotItem[];
+}
+
+export interface TimeSlotItem extends MasterItem {
+  shiftId: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  sortOrder: number;
+  shift?: { id: number; name: string };
+}
+
+type MasterEntity = 'products' | 'customers' | 'processes' | 'lines' | 'shifts' | 'time-slots';
+
+export async function apiGetMasterList<T>(
+  token: string,
+  entity: MasterEntity,
+  params?: { search?: string; page?: number; limit?: number },
+): Promise<PaginatedResponse<T>> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set('search', params.search);
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.limit) q.set('limit', String(params.limit));
+  return apiFetch<PaginatedResponse<T>>(`/api/v1/master/${entity}?${q}`, token);
+}
+
+export async function apiCreateMaster<T>(token: string, entity: MasterEntity, data: object): Promise<T> {
+  return apiFetch<T>(`/api/v1/master/${entity}`, token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateMaster<T>(token: string, entity: MasterEntity, id: number, data: object): Promise<T> {
+  return apiFetch<T>(`/api/v1/master/${entity}/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function apiToggleMaster<T>(token: string, entity: MasterEntity, id: number): Promise<T> {
+  return apiFetch<T>(`/api/v1/master/${entity}/${id}/toggle`, token, { method: 'PATCH' });
+}
+
+export async function apiGetActiveShifts(token: string): Promise<ShiftItem[]> {
+  return apiFetch<ShiftItem[]>('/api/v1/master/shifts/active', token);
+}
