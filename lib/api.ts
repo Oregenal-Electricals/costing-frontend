@@ -435,3 +435,84 @@ export async function apiFinalizeLineAllocation(token: string, id: number): Prom
 export async function apiGetActiveLines(token: string): Promise<MasterItem[]> {
   return apiFetch<MasterItem[]>('/api/v1/master/lines/active', token);
 }
+
+// ─── MANPOWER MOVEMENT ───────────────────────────────
+
+export interface ManpowerMovement {
+  id: number;
+  date: string;
+  shiftId: number;
+  processId: number;
+  fromLineId: number;
+  toLineId: number;
+  productId: number;
+  customerId: number;
+  manpowerCount: number;
+  movementTime: string;
+  reason: string | null;
+  notes: string | null;
+  isReversed: boolean;
+  reversalNotes: string | null;
+  beforeFromLine: number;
+  afterFromLine: number;
+  beforeToLine: number;
+  afterToLine: number;
+  createdAt: string;
+  shift: { id: number; name: string; type: string };
+  process: { id: number; code: string; name: string };
+  fromLine: { id: number; code: string; name: string };
+  toLine: { id: number; code: string; name: string };
+  product: { id: number; code: string; name: string };
+  customer: { id: number; code: string; name: string };
+  approvedBy: { id: number; name: string; employeeCode: string } | null;
+  reversedBy: { id: number; name: string; employeeCode: string } | null;
+  createdBy: { id: number; name: string; employeeCode: string };
+}
+
+export interface LineStatus {
+  lines: {
+    line: { id: number; code: string; name: string };
+    allocated: number;
+    movedOut: number;
+    movedIn: number;
+    current: number;
+  }[];
+  totalAllocated: number;
+  totalMoved: number;
+  movementCount: number;
+}
+
+export async function apiGetMovements(
+  token: string,
+  query?: { date?: string; shiftId?: number; processId?: number; fromLineId?: number; toLineId?: number; page?: number; limit?: number }
+): Promise<PaginatedResponse<ManpowerMovement> & { totalMoved: number }> {
+  const q = new URLSearchParams();
+  if (query?.date) q.set('date', query.date);
+  if (query?.shiftId) q.set('shiftId', String(query.shiftId));
+  if (query?.processId) q.set('processId', String(query.processId));
+  if (query?.fromLineId) q.set('fromLineId', String(query.fromLineId));
+  if (query?.toLineId) q.set('toLineId', String(query.toLineId));
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/manpower-movements?${q}`, token);
+}
+
+export async function apiGetLineStatus(
+  token: string,
+  date: string,
+  shiftId: number,
+  processId: number,
+): Promise<LineStatus> {
+  return apiFetch(`/api/v1/manpower-movements/line-status?date=${date}&shiftId=${shiftId}&processId=${processId}`, token);
+}
+
+export async function apiCreateMovement(token: string, data: object): Promise<ManpowerMovement> {
+  return apiFetch('/api/v1/manpower-movements', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiReverseMovement(token: string, id: number, reversalNotes: string): Promise<ManpowerMovement> {
+  return apiFetch(`/api/v1/manpower-movements/${id}/reverse`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ reversalNotes }),
+  });
+}
