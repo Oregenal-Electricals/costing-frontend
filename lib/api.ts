@@ -361,3 +361,77 @@ export async function apiFinalizeMorningPlan(token: string, id: number): Promise
 export async function apiGetSupervisors(token: string): Promise<Supervisor[]> {
   return apiFetch('/api/v1/morning-plans/supervisors', token);
 }
+
+// ─── LINE ALLOCATION ─────────────────────────────────
+
+export interface LineAllocation {
+  id: number;
+  date: string;
+  shiftId: number;
+  processId: number;
+  lineId: number;
+  productId: number;
+  customerId: number;
+  allocatedCount: number;
+  supervisorId: number | null;
+  notes: string | null;
+  status: 'DRAFT' | 'FINAL';
+  createdById: number;
+  createdAt: string;
+  updatedAt: string;
+  shift: { id: number; name: string; type: string };
+  process: { id: number; code: string; name: string };
+  line: { id: number; code: string; name: string };
+  product: { id: number; code: string; name: string };
+  customer: { id: number; code: string; name: string };
+  supervisor: { id: number; name: string; employeeCode: string } | null;
+  createdBy: { id: number; name: string; employeeCode: string };
+}
+
+export interface AllocationBalance {
+  morningPlanTotal: number;
+  allocated: number;
+  balance: number;
+  hasMorningPlan: boolean;
+  morningPlanStatus: string | null;
+}
+
+export async function apiGetLineAllocations(
+  token: string,
+  query?: { date?: string; shiftId?: number; processId?: number; lineId?: number; status?: string; page?: number; limit?: number }
+): Promise<PaginatedResponse<LineAllocation> & { totalAllocated: number }> {
+  const q = new URLSearchParams();
+  if (query?.date) q.set('date', query.date);
+  if (query?.shiftId) q.set('shiftId', String(query.shiftId));
+  if (query?.processId) q.set('processId', String(query.processId));
+  if (query?.lineId) q.set('lineId', String(query.lineId));
+  if (query?.status) q.set('status', query.status);
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/line-allocations?${q}`, token);
+}
+
+export async function apiGetAllocationBalance(
+  token: string,
+  date: string,
+  shiftId: number,
+  processId: number,
+): Promise<AllocationBalance> {
+  return apiFetch(`/api/v1/line-allocations/balance?date=${date}&shiftId=${shiftId}&processId=${processId}`, token);
+}
+
+export async function apiCreateLineAllocation(token: string, data: object): Promise<LineAllocation> {
+  return apiFetch('/api/v1/line-allocations', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateLineAllocation(token: string, id: number, data: object): Promise<LineAllocation> {
+  return apiFetch(`/api/v1/line-allocations/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function apiFinalizeLineAllocation(token: string, id: number): Promise<LineAllocation> {
+  return apiFetch(`/api/v1/line-allocations/${id}/finalize`, token, { method: 'PATCH' });
+}
+
+export async function apiGetActiveLines(token: string): Promise<MasterItem[]> {
+  return apiFetch<MasterItem[]>('/api/v1/master/lines/active', token);
+}
