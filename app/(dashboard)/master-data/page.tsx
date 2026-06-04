@@ -1,5 +1,7 @@
 "use client";
 
+import RoleGuard from "@/components/auth/RoleGuard";
+
 import Link from "next/link";
 import { Package, Users, Cog, GitBranch, Clock, AlarmClock } from "lucide-react";
 

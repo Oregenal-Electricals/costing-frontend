@@ -1,5 +1,6 @@
 "use client";
 
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, RefreshCw, ChevronLeft, ChevronRight, Pencil, ToggleLeft, ToggleRight, Filter } from "lucide-react";
 import { clsx } from "clsx";
@@ -104,6 +105,7 @@ export default function RateTargetsPage() {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-IN');
 
   return (
+    <RoleGuard allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
     <div className="space-y-5">
       {toast && (
         <div className={clsx(
@@ -294,5 +296,6 @@ export default function RateTargetsPage() {
         />
       )}
     </div>
+    </RoleGuard>
   );
 }

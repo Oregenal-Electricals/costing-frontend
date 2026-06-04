@@ -1,5 +1,6 @@
 "use client";
 
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, RefreshCw, ChevronLeft, ChevronRight, Pencil, CheckCircle, Users } from "lucide-react";
 import { clsx } from "clsx";
@@ -107,6 +108,7 @@ export default function MorningPlanPage() {
   const totalPages = Math.ceil(total / LIMIT);
 
   return (
+    <RoleGuard allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "SUPERVISOR"]}>
     <div className="space-y-5">
       {toast && (
         <div className={clsx(
@@ -293,5 +295,6 @@ export default function MorningPlanPage() {
         />
       )}
     </div>
+    </RoleGuard>
   );
 }

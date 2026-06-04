@@ -1,4 +1,6 @@
 "use client";
+
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useEffect, useState } from "react";
 import MasterPage from "@/components/master-data/MasterPage";
 import SimpleModal from "@/components/master-data/SimpleModal";

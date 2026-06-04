@@ -1,5 +1,6 @@
 "use client";
 
+import RoleGuard from "@/components/auth/RoleGuard";
 import { useEffect, useState, useCallback } from "react";
 import { UserPlus, Pencil, KeyRound, ToggleLeft, ToggleRight, Search, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
@@ -100,6 +101,7 @@ export default function UsersPage() {
   );
 
   return (
+    <RoleGuard allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
     <div className="space-y-6">
       {/* Toast */}
       {toast && (
@@ -254,5 +256,6 @@ export default function UsersPage() {
         />
       )}
     </div>
+    </RoleGuard>
   );
 }
