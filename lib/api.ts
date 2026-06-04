@@ -516,3 +516,128 @@ export async function apiReverseMovement(token: string, id: number, reversalNote
     body: JSON.stringify({ reversalNotes }),
   });
 }
+
+// ─── PRODUCTION ENTRY ────────────────────────────────
+
+export interface ProductionEntry {
+  id: number;
+  date: string;
+  shiftId: number;
+  timeSlotId: number;
+  processId: number;
+  lineId: number;
+  productId: number;
+  customerId: number;
+  supervisorId: number | null;
+  manpowerCount: number;
+  shiftHours: string;
+  actualOutput: string;
+  rejectedQty: string;
+  remarks: string | null;
+  notes: string | null;
+  hourlyRate: string;
+  targetPerHour: string;
+  ratePerPiece: string;
+  totalManHours: string;
+  labourCost: string;
+  targetOutput: string;
+  difference: string;
+  achievementPct: string;
+  targetLabourCostPerUnit: string;
+  actualLabourCostPerUnit: string;
+  allowedLabourCost: string;
+  labourGainLoss: string;
+  status: 'PROFIT' | 'LOSS' | 'NEUTRAL';
+  isCorrected: boolean;
+  createdAt: string;
+  shift: { id: number; name: string; type: string };
+  timeSlot: { id: number; label: string; startTime: string; endTime: string };
+  process: { id: number; code: string; name: string };
+  line: { id: number; code: string; name: string };
+  product: { id: number; code: string; name: string; unit: string };
+  customer: { id: number; code: string; name: string };
+  supervisor: { id: number; name: string; employeeCode: string } | null;
+  createdBy: { id: number; name: string; employeeCode: string };
+}
+
+export interface ProductionPreview {
+  rateTarget: {
+    hourlyRate: number;
+    targetPerHour: number;
+    ratePerPiece: number;
+    effectiveFrom: string;
+  };
+  calculations: {
+    totalManHours: number;
+    labourCost: number;
+    targetOutput: number;
+    difference: number;
+    achievementPct: number;
+    targetLabourCostPerUnit: number;
+    actualLabourCostPerUnit: number;
+    allowedLabourCost: number;
+    labourGainLoss: number;
+    status: string;
+  };
+}
+
+export interface PreloadData {
+  manpowerCount: number;
+  supervisorId: number | null;
+  supervisor: { id: number; name: string; employeeCode: string } | null;
+  hasAllocation: boolean;
+  allocationStatus: string | null;
+}
+
+export interface TimeSlotOption {
+  id: number;
+  label: string;
+  startTime: string;
+  endTime: string;
+  sortOrder: number;
+}
+
+export async function apiGetProductionEntries(
+  token: string,
+  query?: {
+    date?: string; shiftId?: number; processId?: number;
+    lineId?: number; productId?: number; customerId?: number;
+    status?: string; page?: number; limit?: number;
+  }
+): Promise<PaginatedResponse<ProductionEntry> & {
+  summary: { totalEntries: number; profit: number; loss: number; neutral: number; totalOutput: number; totalGainLoss: number }
+}> {
+  const q = new URLSearchParams();
+  if (query?.date) q.set('date', query.date);
+  if (query?.shiftId) q.set('shiftId', String(query.shiftId));
+  if (query?.processId) q.set('processId', String(query.processId));
+  if (query?.lineId) q.set('lineId', String(query.lineId));
+  if (query?.productId) q.set('productId', String(query.productId));
+  if (query?.customerId) q.set('customerId', String(query.customerId));
+  if (query?.status) q.set('status', query.status);
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/production-entries?${q}`, token);
+}
+
+export async function apiPreviewProductionEntry(token: string, data: object): Promise<ProductionPreview> {
+  return apiFetch('/api/v1/production-entries/preview', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiGetPreloadData(
+  token: string, date: string, shiftId: number, processId: number, lineId: number
+): Promise<PreloadData> {
+  return apiFetch(`/api/v1/production-entries/preload?date=${date}&shiftId=${shiftId}&processId=${processId}&lineId=${lineId}`, token);
+}
+
+export async function apiGetTimeSlots(token: string, shiftId: number): Promise<TimeSlotOption[]> {
+  return apiFetch(`/api/v1/production-entries/time-slots?shiftId=${shiftId}`, token);
+}
+
+export async function apiCreateProductionEntry(token: string, data: object): Promise<ProductionEntry> {
+  return apiFetch('/api/v1/production-entries', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateProductionEntry(token: string, id: number, data: object): Promise<ProductionEntry> {
+  return apiFetch(`/api/v1/production-entries/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
+}
