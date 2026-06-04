@@ -1,12 +1,19 @@
 "use client";
 
 import { Bell, Search } from "lucide-react";
+import { getUser } from "@/lib/auth";
+import { ROLE_BADGE_COLOR, ROLE_LABEL, UserRole } from "@/lib/roles";
+import { clsx } from "clsx";
 
 interface TopbarProps {
   title: string;
 }
 
 export default function Topbar({ title }: TopbarProps) {
+  const user = getUser();
+  const role = (user?.role || 'VIEWER') as UserRole;
+  const initial = user?.name?.charAt(0)?.toUpperCase() || 'U';
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
       <div>
@@ -25,8 +32,13 @@ export default function Topbar({ title }: TopbarProps) {
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
-        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-          A
+        <div className="flex items-center gap-2">
+          <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium hidden sm:block", ROLE_BADGE_COLOR[role])}>
+            {ROLE_LABEL[role]}
+          </span>
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer">
+            {initial}
+          </div>
         </div>
       </div>
     </header>

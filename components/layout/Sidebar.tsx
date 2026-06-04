@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, ArrowLeftRight,
   Factory, CheckSquare, BarChart2, Database, UserCog,
-  Settings, ChevronDown, ChevronRight, Zap, Menu, X,
+  Settings, ChevronDown, ChevronRight, Zap, Menu, X, LogOut,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { NAV_ITEMS, APP_NAME } from "@/lib/constants";
+import { getUser, clearAuth } from "@/lib/auth";
+import { canAccess, ROLE_BADGE_COLOR, ROLE_LABEL, UserRole } from "@/lib/roles";
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   LayoutDashboard: <LayoutDashboard size={18} />,
@@ -26,9 +28,18 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(["Operations", "Management", "Admin"]);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const user = getUser();
+  const role = (user?.role || 'VIEWER') as UserRole;
+
+  const handleLogout = () => {
+    clearAuth();
+    router.replace("/login");
+  };
 
   const toggleGroup = (group: string) => {
     setOpenGroups((prev) =>
@@ -38,6 +49,7 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
+      {/* Logo */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-slate-700">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -64,60 +76,89 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {NAV_ITEMS.map((group) => (
-          <div key={group.group} className="mb-4">
-            {!collapsed && (
-              <button
-                onClick={() => toggleGroup(group.group)}
-                className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
-              >
-                {group.group}
-                {openGroups.includes(group.group)
-                  ? <ChevronDown size={12} />
-                  : <ChevronRight size={12} />}
-              </button>
-            )}
-            {(collapsed || openGroups.includes(group.group)) && (
-              <div className="mt-1 space-y-0.5">
-                {group.items.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={clsx(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                        isActive
-                          ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                          : "text-slate-300 hover:bg-slate-700 hover:text-white"
-                      )}
-                    >
-                      <span className={clsx(isActive ? "text-white" : "text-slate-400")}>
-                        {ICON_MAP[item.icon]}
-                      </span>
-                      {!collapsed && <span>{item.label}</span>}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+        {NAV_ITEMS.map((group) => {
+          const visibleItems = group.items.filter((item) => canAccess(role, item.href));
+          if (visibleItems.length === 0) return null;
+          return (
+            <div key={group.group} className="mb-4">
+              {!collapsed && (
+                <button
+                  onClick={() => toggleGroup(group.group)}
+                  className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider hover:text-slate-200 transition-colors"
+                >
+                  {group.group}
+                  {openGroups.includes(group.group)
+                    ? <ChevronDown size={12} />
+                    : <ChevronRight size={12} />}
+                </button>
+              )}
+              {(collapsed || openGroups.includes(group.group)) && (
+                <div className="mt-1 space-y-0.5">
+                  {visibleItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={clsx(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                            : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                        )}
+                      >
+                        <span className={clsx(isActive ? "text-white" : "text-slate-400")}>
+                          {ICON_MAP[item.icon]}
+                        </span>
+                        {!collapsed && <span>{item.label}</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
+      {/* User + Logout */}
       {!collapsed && (
         <div className="px-4 py-4 border-t border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              A
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {user?.name?.charAt(0) || 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-medium truncate">Admin User</p>
-              <p className="text-slate-400 text-xs truncate">Administrator</p>
+              <p className="text-white text-sm font-medium truncate">{user?.name || 'User'}</p>
+              <span className={clsx(
+                "text-xs px-1.5 py-0.5 rounded font-medium",
+                ROLE_BADGE_COLOR[role]
+              )}>
+                {ROLE_LABEL[role]}
+              </span>
             </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 w-full px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg text-sm transition-colors"
+          >
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      )}
+
+      {collapsed && (
+        <div className="px-2 py-4 border-t border-slate-700">
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center w-full p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       )}
     </div>
