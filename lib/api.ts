@@ -707,3 +707,86 @@ export async function apiRejectCorrection(token: string, id: number, remarks?: s
     body: JSON.stringify({ remarks }),
   });
 }
+
+// ─── REPORTS ─────────────────────────────────────────
+
+export interface ReportSummary {
+  totalEntries: number;
+  totalManpower: number;
+  totalTargetOutput: number;
+  totalActualOutput: number;
+  totalLabourCost: number;
+  totalGainLoss: number;
+  profit: number;
+  loss: number;
+  neutral: number;
+  avgAchievement: number;
+}
+
+export interface ReportQuery {
+  dateFrom?: string;
+  dateTo?: string;
+  shiftId?: number;
+  processId?: number;
+  lineId?: number;
+  productId?: number;
+  customerId?: number;
+  createdById?: number;
+  page?: number;
+  limit?: number;
+}
+
+function buildReportQuery(q?: ReportQuery): string {
+  const params = new URLSearchParams();
+  if (q?.dateFrom) params.set('dateFrom', q.dateFrom);
+  if (q?.dateTo) params.set('dateTo', q.dateTo);
+  if (q?.shiftId) params.set('shiftId', String(q.shiftId));
+  if (q?.processId) params.set('processId', String(q.processId));
+  if (q?.lineId) params.set('lineId', String(q.lineId));
+  if (q?.productId) params.set('productId', String(q.productId));
+  if (q?.customerId) params.set('customerId', String(q.customerId));
+  if (q?.createdById) params.set('createdById', String(q.createdById));
+  if (q?.page) params.set('page', String(q.page));
+  if (q?.limit) params.set('limit', String(q.limit));
+  return params.toString();
+}
+
+export async function apiGetDailyReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/daily?${buildReportQuery(q)}`, token);
+}
+export async function apiGetHourlyReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/hourly?${buildReportQuery(q)}`, token);
+}
+export async function apiGetLineReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/line?${buildReportQuery(q)}`, token);
+}
+export async function apiGetProductReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/product?${buildReportQuery(q)}`, token);
+}
+export async function apiGetProcessReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/process?${buildReportQuery(q)}`, token);
+}
+export async function apiGetCustomerReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/customer?${buildReportQuery(q)}`, token);
+}
+export async function apiGetMonthlyReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/monthly?${buildReportQuery(q)}`, token);
+}
+export async function apiGetUserReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/user?${buildReportQuery(q)}`, token);
+}
+export async function apiGetSnapshotDaily(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/snapshot/daily?date=${date}`, token);
+}
+export async function apiGetSnapshotHourly(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/snapshot/hourly?date=${date}`, token);
+}
+export async function apiGetSnapshotProduct(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/snapshot/product?date=${date}`, token);
+}
+export async function apiGetSnapshotProcess(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/snapshot/process?date=${date}`, token);
+}
+export async function apiGetSnapshotCustomer(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/snapshot/customer?date=${date}`, token);
+}
