@@ -61,12 +61,14 @@ async function apiFetch<T>(
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    const msg =
-      typeof error?.message === 'string'
-        ? error.message
-        : Array.isArray(error?.message)
-        ? error.message.join(', ')
-        : 'Something went wrong';
+    let msg = 'Something went wrong';
+    if (typeof error?.message === 'string') {
+      msg = error.message;
+    } else if (Array.isArray(error?.message)) {
+      msg = error.message.join(', ');
+    } else if (typeof error?.message?.message === 'string') {
+      msg = error.message.message;
+    }
     throw new Error(msg);
   }
 
@@ -283,4 +285,79 @@ export async function apiGetActiveCustomers(token: string): Promise<MasterItem[]
 
 export async function apiGetActiveProcesses(token: string): Promise<MasterItem[]> {
   return apiFetch<MasterItem[]>('/api/v1/master/processes/active', token);
+}
+
+// ─── MORNING PLAN ────────────────────────────────────
+
+export interface MorningPlan {
+  id: number;
+  date: string;
+  shiftId: number;
+  processId: number;
+  department: string | null;
+  totalManpower: number;
+  supervisorId: number | null;
+  notes: string | null;
+  status: 'DRAFT' | 'FINAL';
+  createdById: number;
+  createdAt: string;
+  updatedAt: string;
+  shift: { id: number; name: string; type: string };
+  process: { id: number; code: string; name: string };
+  supervisor: { id: number; name: string; employeeCode: string } | null;
+  createdBy: { id: number; name: string; employeeCode: string };
+}
+
+export interface MorningPlanSummary {
+  date: string;
+  totalManpower: number;
+  count: number;
+  byProcess: {
+    process: { id: number; code: string; name: string };
+    shift: { id: number; name: string; type: string };
+    totalManpower: number;
+    status: string;
+    department: string | null;
+  }[];
+}
+
+export interface Supervisor {
+  id: number;
+  name: string;
+  employeeCode: string;
+  designation: string | null;
+}
+
+export async function apiGetMorningPlans(
+  token: string,
+  query?: { date?: string; shiftId?: number; processId?: number; status?: string; page?: number; limit?: number }
+): Promise<PaginatedResponse<MorningPlan> & { summary: { total: number; totalManpower: number; draft: number; final: number } }> {
+  const q = new URLSearchParams();
+  if (query?.date) q.set('date', query.date);
+  if (query?.shiftId) q.set('shiftId', String(query.shiftId));
+  if (query?.processId) q.set('processId', String(query.processId));
+  if (query?.status) q.set('status', query.status);
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/morning-plans?${q}`, token);
+}
+
+export async function apiGetMorningPlanSummary(token: string, date: string): Promise<MorningPlanSummary> {
+  return apiFetch(`/api/v1/morning-plans/summary?date=${date}`, token);
+}
+
+export async function apiCreateMorningPlan(token: string, data: object): Promise<MorningPlan> {
+  return apiFetch('/api/v1/morning-plans', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiUpdateMorningPlan(token: string, id: number, data: object): Promise<MorningPlan> {
+  return apiFetch(`/api/v1/morning-plans/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export async function apiFinalizeMorningPlan(token: string, id: number): Promise<MorningPlan> {
+  return apiFetch(`/api/v1/morning-plans/${id}/finalize`, token, { method: 'PATCH' });
+}
+
+export async function apiGetSupervisors(token: string): Promise<Supervisor[]> {
+  return apiFetch('/api/v1/morning-plans/supervisors', token);
 }
