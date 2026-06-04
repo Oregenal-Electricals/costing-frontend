@@ -641,3 +641,69 @@ export async function apiCreateProductionEntry(token: string, data: object): Pro
 export async function apiUpdateProductionEntry(token: string, id: number, data: object): Promise<ProductionEntry> {
   return apiFetch(`/api/v1/production-entries/${id}`, token, { method: 'PUT', body: JSON.stringify(data) });
 }
+
+// ─── CORRECTIONS ─────────────────────────────────────
+
+export interface CorrectionRequest {
+  id: number;
+  productionEntryId: number;
+  fieldName: string;
+  oldValue: string;
+  newValue: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  remarks: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  productionEntry: {
+    id: number;
+    date: string;
+    product: { id: number; name: string; code: string };
+    customer: { id: number; name: string };
+    process: { id: number; name: string };
+    line: { id: number; name: string };
+    shift: { id: number; name: string };
+  };
+  requestedBy: { id: number; name: string; employeeCode: string };
+  approvedBy: { id: number; name: string; employeeCode: string } | null;
+}
+
+export interface CorrectableField {
+  field: string;
+  label: string;
+}
+
+export async function apiGetCorrections(
+  token: string,
+  query?: { status?: string; productionEntryId?: number; page?: number; limit?: number }
+): Promise<PaginatedResponse<CorrectionRequest> & { summary: { pending: number; approved: number; rejected: number } }> {
+  const q = new URLSearchParams();
+  if (query?.status) q.set('status', query.status);
+  if (query?.productionEntryId) q.set('productionEntryId', String(query.productionEntryId));
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/corrections?${q}`, token);
+}
+
+export async function apiGetCorrectableFields(token: string): Promise<CorrectableField[]> {
+  return apiFetch('/api/v1/corrections/fields', token);
+}
+
+export async function apiCreateCorrection(token: string, data: object): Promise<CorrectionRequest> {
+  return apiFetch('/api/v1/corrections', token, { method: 'POST', body: JSON.stringify(data) });
+}
+
+export async function apiApproveCorrection(token: string, id: number, remarks?: string): Promise<CorrectionRequest> {
+  return apiFetch(`/api/v1/corrections/${id}/approve`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ remarks }),
+  });
+}
+
+export async function apiRejectCorrection(token: string, id: number, remarks?: string): Promise<CorrectionRequest> {
+  return apiFetch(`/api/v1/corrections/${id}/reject`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ remarks }),
+  });
+}

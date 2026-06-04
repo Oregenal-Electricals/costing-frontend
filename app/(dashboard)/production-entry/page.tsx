@@ -1,7 +1,8 @@
 "use client";
 
+import CorrectionRequestModal from "@/components/corrections/CorrectionRequestModal";
 import { useEffect, useState, useCallback } from "react";
-import { Plus, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Minus, FileEdit } from "lucide-react";
 import { clsx } from "clsx";
 import {
   ProductionEntry, MasterItem, ShiftItem, Supervisor,
@@ -48,6 +49,7 @@ export default function ProductionEntryPage() {
   const [customers, setCustomers] = useState<MasterItem[]>([]);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [correctionEntry, setCorrectionEntry] = useState<ProductionEntry | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -198,7 +200,7 @@ export default function ProductionEntryPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {["Date", "Shift/Slot", "Process/Line", "Product", "Customer", "MP", "Hrs", "Target", "Actual", "Ach%", "Labour Cost", "Gain/Loss", "Status"].map((h) => (
+                    {["Date", "Shift/Slot", "Process/Line", "Product", "Customer", "MP", "Hrs", "Target", "Actual", "Ach%", "Labour Cost", "Gain/Loss", "Status", ""].map((h) => (
                       <th key={h} className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -242,6 +244,15 @@ export default function ProductionEntryPage() {
                       <td className="px-3 py-3">
                         <StatusBadge status={entry.status} />
                       </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => setCorrectionEntry(entry)}
+                          className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          title="Request Correction"
+                        >
+                          <FileEdit size={14} />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -275,6 +286,13 @@ export default function ProductionEntryPage() {
             onClose={() => setShowForm(false)}
           />
         )}
+      {correctionEntry && (
+        <CorrectionRequestModal
+          entry={correctionEntry}
+          onClose={() => setCorrectionEntry(null)}
+          onSaved={() => { setCorrectionEntry(null); showToast("Correction request submitted"); }}
+        />
+      )}
       </div>
     </RoleGuard>
   );
