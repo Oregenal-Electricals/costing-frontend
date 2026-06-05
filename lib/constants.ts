@@ -27,6 +27,7 @@ export const NAV_ITEMS = [
       { label: "Master Data", href: "/master-data", icon: "Database" },
       { label: "User Management", href: "/users", icon: "UserCog" },
       { label: "Import Center", href: "/import", icon: "Upload" },
+      { label: "QA Testing", href: "/qa", icon: "TestTube" },
       { label: "Audit Log", href: "/audit", icon: "Shield" },
       { label: "Backup & Settings", href: "/settings", icon: "Settings" },
     ],

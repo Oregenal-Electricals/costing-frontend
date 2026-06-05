@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, ArrowLeftRight,
   Factory, CheckSquare, BarChart2, Database, UserCog,
-  Settings, ChevronDown, ChevronRight, Zap, Menu, X, LogOut, Target, Shield, Upload,
+  Settings, ChevronDown, ChevronRight, Zap, Menu, X, LogOut, Target, Shield, Upload, TestTube,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { NAV_ITEMS, APP_NAME } from "@/lib/constants";
@@ -27,6 +27,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Target: <Target size={18} />,
   Shield: <Shield size={18} />,
   Upload: <Upload size={18} />,
+  TestTube: <TestTube size={18} />,
 };
 
 export default function Sidebar() {
