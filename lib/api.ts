@@ -790,3 +790,8 @@ export async function apiGetSnapshotProcess(token: string, date: string) {
 export async function apiGetSnapshotCustomer(token: string, date: string) {
   return apiFetch<any>(`/api/v1/reports/snapshot/customer?date=${date}`, token);
 }
+
+// ─── DASHBOARD ───────────────────────────────────────
+export async function apiGetDashboard(token: string, date: string) {
+  return apiFetch<any>(`/api/v1/reports/dashboard?date=${date}`, token);
+}
