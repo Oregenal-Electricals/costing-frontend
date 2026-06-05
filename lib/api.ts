@@ -848,3 +848,40 @@ export async function apiGetAuditLogs(
 export async function apiGetAuditStats(token: string): Promise<AuditStats> {
   return apiFetch('/api/v1/audit/stats', token);
 }
+
+// ─── BACKUP ──────────────────────────────────────────
+export interface BackupFile {
+  fileName: string;
+  size: number;
+  sizeHuman: string;
+  createdAt: string;
+}
+
+export interface BackupStats {
+  totalBackups: number;
+  lastBackup: BackupFile | null;
+  totalSize: number;
+  database: {
+    users: number;
+    products: number;
+    customers: number;
+    productionEntries: number;
+  };
+}
+
+export async function apiGetBackupStats(token: string): Promise<BackupStats> {
+  return apiFetch('/api/v1/backup/stats', token);
+}
+
+export async function apiListBackups(token: string): Promise<BackupFile[]> {
+  return apiFetch('/api/v1/backup/list', token);
+}
+
+export async function apiCreateBackup(token: string): Promise<object> {
+  return apiFetch('/api/v1/backup/create', token, { method: 'POST' });
+}
+
+export function getBackupDownloadUrl(fileName: string): string {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  return `${API_URL}/api/v1/backup/download/${fileName}`;
+}
