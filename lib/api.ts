@@ -940,3 +940,23 @@ export async function apiGetPublicSettings(): Promise<Record<string, string>> {
   const res = await fetch(`${API_URL}/api/v1/settings/public`);
   return res.json();
 }
+
+// ─── IMPORT ──────────────────────────────────────────
+export interface ImportResult {
+  total: number;
+  imported: number;
+  skipped: number;
+  errors: { row: number; field: string; message: string }[];
+  skippedRows: string[];
+}
+
+export async function apiImportData(
+  token: string,
+  type: string,
+  rows: Record<string, unknown>[]
+): Promise<ImportResult> {
+  return apiFetch(`/api/v1/import/${type}`, token, {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+  });
+}
