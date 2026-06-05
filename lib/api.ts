@@ -913,3 +913,30 @@ export async function apiGetNotifications(token: string): Promise<Alert[]> {
 export async function apiGetNotificationSummary(token: string): Promise<NotificationSummary> {
   return apiFetch('/api/v1/notifications/summary', token);
 }
+
+// ─── SETTINGS ────────────────────────────────────────
+export interface SystemSetting {
+  id: number;
+  key: string;
+  value: string;
+  category: string;
+  description: string | null;
+  updatedAt: string;
+}
+
+export async function apiGetSettings(token: string): Promise<{ settings: SystemSetting[]; grouped: Record<string, SystemSetting[]> }> {
+  return apiFetch('/api/v1/settings', token);
+}
+
+export async function apiUpdateSettings(token: string, updates: { key: string; value: string }[]): Promise<SystemSetting[]> {
+  return apiFetch('/api/v1/settings', token, {
+    method: 'PUT',
+    body: JSON.stringify({ updates }),
+  });
+}
+
+export async function apiGetPublicSettings(): Promise<Record<string, string>> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const res = await fetch(`${API_URL}/api/v1/settings/public`);
+  return res.json();
+}
