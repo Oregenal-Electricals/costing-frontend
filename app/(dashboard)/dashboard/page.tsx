@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { getToken, getUser } from "@/lib/auth";
-import { apiGetDashboard } from "@/lib/api";
+import { apiGetDashboard, apiGetNotificationSummary, Alert } from "@/lib/api";
 import Link from "next/link";
 
 function fmt(n: number | string, d = 0) {
@@ -55,14 +55,19 @@ export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [notifications, setNotifications] = useState<Alert[]>([]);
 
   const load = useCallback(async () => {
     const token = getToken();
     if (!token) return;
     setLoading(true);
     try {
-      const res = await apiGetDashboard(token, date);
+      const [res, notifRes] = await Promise.all([
+        apiGetDashboard(token, date),
+        apiGetNotificationSummary(token),
+      ]);
       setData(res);
+      setNotifications(notifRes.alerts || []);
       setLastUpdated(new Date());
     } catch (err) {
       console.error(err);

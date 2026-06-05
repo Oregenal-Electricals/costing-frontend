@@ -885,3 +885,31 @@ export function getBackupDownloadUrl(fileName: string): string {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   return `${API_URL}/api/v1/backup/download/${fileName}`;
 }
+
+// ─── NOTIFICATIONS ───────────────────────────────────
+export interface Alert {
+  id: string;
+  type: string;
+  severity: 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  link?: string;
+  count?: number;
+  createdAt: string;
+}
+
+export interface NotificationSummary {
+  total: number;
+  error: number;
+  warning: number;
+  info: number;
+  alerts: Alert[];
+}
+
+export async function apiGetNotifications(token: string): Promise<Alert[]> {
+  return apiFetch('/api/v1/notifications', token);
+}
+
+export async function apiGetNotificationSummary(token: string): Promise<NotificationSummary> {
+  return apiFetch('/api/v1/notifications/summary', token);
+}
