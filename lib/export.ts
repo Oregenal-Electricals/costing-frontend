@@ -13,7 +13,6 @@ export function exportToExcel(
 ) {
   const wb = XLSX.utils.book_new();
 
-  // Header rows
   const headerRows = [
     [APP_NAME],
     [reportTitle],
@@ -23,41 +22,30 @@ export function exportToExcel(
     columns.map((c) => c.label),
   ];
 
-  // Data rows
   const dataRows = data.map((row) =>
     columns.map((col) => {
       const val = row[col.key];
-      return typeof val === 'object' && val !== null
-        ? JSON.stringify(val)
-        : val ?? '';
+      return typeof val === 'object' && val !== null ? JSON.stringify(val) : val ?? '';
     })
   );
 
-  // Summary rows
   const summaryRows = [
     [],
     ['SUMMARY'],
     ...Object.entries(summary).map(([k, v]) => [k, v]),
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet([
-    ...headerRows,
-    ...dataRows,
-    ...summaryRows,
-  ]);
-
-  // Column widths
+  const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows, ...summaryRows]);
   ws['!cols'] = columns.map(() => ({ wch: 18 }));
-
   XLSX.utils.book_append_sheet(wb, ws, 'Report');
   XLSX.writeFile(wb, `${fileName}.xlsx`);
 }
 
 // ─── PNG EXPORT ──────────────────────────────────────
-export async function exportToPNG(elementId: string, fileName: string) {
+export async function exportToPNG(elementId: string, fileName: string): Promise<string | null> {
   const html2canvas = (await import('html2canvas')).default;
   const element = document.getElementById(elementId);
-  if (!element) return;
+  if (!element) return null;
 
   const canvas = await html2canvas(element, {
     scale: 2,
@@ -66,32 +54,60 @@ export async function exportToPNG(elementId: string, fileName: string) {
     allowTaint: true,
   });
 
+  const dataUrl = canvas.toDataURL('image/png');
+
   const link = document.createElement('a');
   link.download = `${fileName}.png`;
-  link.href = canvas.toDataURL('image/png');
+  link.href = dataUrl;
   link.click();
+
+  return dataUrl;
+}
+
+// ─── GET PNG BLOB ────────────────────────────────────
+export async function getSnapshotBlob(elementId: string): Promise<{ blob: Blob; dataUrl: string } | null> {
+  const html2canvas = (await import('html2canvas')).default;
+  const element = document.getElementById(elementId);
+  if (!element) return null;
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+  });
+
+  const dataUrl = canvas.toDataURL('image/png');
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve({ blob, dataUrl });
+      else resolve(null);
+    }, 'image/png');
+  });
 }
 
 // ─── SHARE ───────────────────────────────────────────
-export async function shareSnapshot(elementId: string, title: string) {
-  const html2canvas = (await import('html2canvas')).default;
-  const element = document.getElementById(elementId);
-  if (!element) return;
+export async function shareSnapshot(
+  elementId: string,
+  title: string,
+  onShowShareDialog: (dataUrl: string, blob: Blob, title: string) => void,
+) {
+  const result = await getSnapshotBlob(elementId);
+  if (!result) return;
 
-  const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#ffffff' });
+  const { blob, dataUrl } = result;
+  const file = new File([blob], `${title}.png`, { type: 'image/png' });
 
-  canvas.toBlob(async (blob) => {
-    if (!blob) return;
-    const file = new File([blob], `${title}.png`, { type: 'image/png' });
-
-    if (navigator.share && navigator.canShare({ files: [file] })) {
+  // Try native share on mobile
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
       await navigator.share({ files: [file], title, text: `${APP_NAME} - ${title}` });
-    } else {
-      // Fallback: download
-      const link = document.createElement('a');
-      link.download = `${title}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      return;
+    } catch {
+      // User cancelled or not supported - fall through to dialog
     }
-  });
+  }
+
+  // Show custom share dialog
+  onShowShareDialog(dataUrl, blob, title);
 }
