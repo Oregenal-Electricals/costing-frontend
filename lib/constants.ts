@@ -26,6 +26,7 @@ export const NAV_ITEMS = [
       { label: "Rate Targets", href: "/rate-targets", icon: "Target" },
       { label: "Master Data", href: "/master-data", icon: "Database" },
       { label: "User Management", href: "/users", icon: "UserCog" },
+      { label: "Audit Log", href: "/audit", icon: "Shield" },
       { label: "Backup & Settings", href: "/settings", icon: "Settings" },
     ],
   },

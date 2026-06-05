@@ -795,3 +795,56 @@ export async function apiGetSnapshotCustomer(token: string, date: string) {
 export async function apiGetDashboard(token: string, date: string) {
   return apiFetch<any>(`/api/v1/reports/dashboard?date=${date}`, token);
 }
+
+// ─── AUDIT LOG ───────────────────────────────────────
+export interface AuditLog {
+  id: number;
+  userId: number;
+  action: string;
+  tableName: string;
+  moduleLabel: string;
+  recordId: number | null;
+  oldData: unknown;
+  newData: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string;
+    employeeCode: string;
+    role: { name: string };
+  };
+}
+
+export interface AuditStats {
+  total: number;
+  todayCount: number;
+  byAction: { action: string; count: number }[];
+  byTable: { tableName: string; label: string; count: number }[];
+}
+
+export async function apiGetAuditLogs(
+  token: string,
+  query?: {
+    dateFrom?: string; dateTo?: string;
+    userId?: number; action?: string; tableName?: string;
+    page?: number; limit?: number;
+  }
+): Promise<PaginatedResponse<AuditLog> & {
+  filters: { actions: string[]; tables: { value: string; label: string }[] }
+}> {
+  const q = new URLSearchParams();
+  if (query?.dateFrom) q.set('dateFrom', query.dateFrom);
+  if (query?.dateTo) q.set('dateTo', query.dateTo);
+  if (query?.userId) q.set('userId', String(query.userId));
+  if (query?.action) q.set('action', query.action);
+  if (query?.tableName) q.set('tableName', query.tableName);
+  if (query?.page) q.set('page', String(query.page));
+  if (query?.limit) q.set('limit', String(query.limit));
+  return apiFetch(`/api/v1/audit?${q}`, token);
+}
+
+export async function apiGetAuditStats(token: string): Promise<AuditStats> {
+  return apiFetch('/api/v1/audit/stats', token);
+}
