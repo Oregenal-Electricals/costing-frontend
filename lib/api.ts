@@ -960,3 +960,53 @@ export async function apiImportData(
     body: JSON.stringify({ rows }),
   });
 }
+
+// ─── SPARE MP REPORT ─────────────────────────────────
+export interface SpareMPReport {
+  date: string;
+  processes: {
+    process: { id: number; name: string };
+    shift: { id: number; name: string };
+    totalProcessMP: number;
+    allocatedMP: number;
+    spareMP: number;
+    totalSpareMPCost: number;
+    totalDirectCost: number;
+    totalTrueCost: number;
+    totalTrueGainLoss: number;
+    totalActualOutput: number;
+    totalTargetOutput: number;
+    lines: {
+      line: { id: number; name: string };
+      product: { id: number; name: string };
+      manpowerCount: number;
+      lineSharePct: number;
+      spareMPCost: number;
+      directCost: number;
+      trueTotalCost: number;
+      actualOutput: number;
+      targetOutput: number;
+      achievementPct: number;
+      trueGainLoss: number;
+      trueStatus: string;
+    }[];
+  }[];
+  summary: {
+    totalSpareMPCost: number;
+    totalDirectCost: number;
+    totalTrueCost: number;
+    totalTrueGainLoss: number;
+  };
+}
+
+export async function apiGetSpareMPReport(
+  token: string,
+  date: string,
+  shiftId?: number,
+  processId?: number,
+): Promise<SpareMPReport> {
+  const q = new URLSearchParams({ date });
+  if (shiftId) q.set('shiftId', String(shiftId));
+  if (processId) q.set('processId', String(processId));
+  return apiFetch(`/api/v1/production-entries/spare-mp-report?${q}`, token);
+}

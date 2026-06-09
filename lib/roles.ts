@@ -29,6 +29,12 @@ export const ROLE_NAV_ACCESS: Record<UserRole, string[]> = {
   VIEWER: ['/reports'],
 };
 
+// ─── COST VISIBILITY ─────────────────────────────────────
+const COST_VISIBLE_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'];
+export function canSeeCost(role: UserRole): boolean {
+  return COST_VISIBLE_ROLES.includes(role);
+}
+
 export function canAccess(role: UserRole, href: string): boolean {
   const allowed = ROLE_NAV_ACCESS[role];
   if (!allowed) return false;

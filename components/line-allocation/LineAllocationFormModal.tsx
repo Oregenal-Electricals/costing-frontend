@@ -55,6 +55,7 @@ export default function LineAllocationFormModal({
   // Load balance when date/shift/process changes
   useEffect(() => {
     if (!form.date || !form.shiftId || !form.processId) return;
+    // Always load balance — needed for edit mode too
     const token = getToken();
     if (!token) return;
     setBalanceLoading(true);
@@ -253,7 +254,7 @@ export default function LineAllocationFormModal({
               className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" disabled={loading || !balance?.hasMorningPlan}
+            <button type="submit" disabled={loading || (!isEdit && !balance?.hasMorningPlan)}
               className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium">
               {loading ? 'Saving...' : isEdit ? 'Update' : 'Create Allocation'}
             </button>

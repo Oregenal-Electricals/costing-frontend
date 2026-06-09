@@ -17,6 +17,7 @@ import ReportFilters from "@/components/reports/ReportFilters";
 import SummaryCards from "@/components/reports/SummaryCards";
 import ReportTable from "@/components/reports/ReportTable";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 
 const REPORT_TYPES = [
   { key: 'daily', label: 'Daily' },
@@ -151,6 +152,11 @@ export default function ReportsPage() {
             <FileSpreadsheet size={16} />
             Excel
           </button>
+          <Link href="/reports/spare-mp"
+            className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors">
+            <AlertTriangle size={16} />
+            Spare MP
+          </Link>
           <Link href="/reports/snapshots"
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Camera size={16} />
