@@ -406,13 +406,14 @@ export default function PerPieceCostPage() {
             <div>
               <div ref={cardRef} className="bg-white rounded-2xl border border-gray-200 p-6 max-w-2xl">
                 {/* Card Header */}
-                <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                <div className="bg-slate-800 rounded-xl px-5 py-4 mb-5 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider">Costing Tool — Manufacturing ERP</p>
-                    <h3 className="text-xl font-black text-gray-900 mt-0.5">Per Piece Cost Report</h3>
+                    <p className="text-slate-400 text-xs uppercase tracking-widest">Costing Tool — Manufacturing ERP</p>
+                    <h3 className="text-white font-black text-2xl mt-0.5">Per Piece Cost Report</h3>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-gray-700">{filters.dateFrom === filters.dateTo ? filters.dateFrom : `${filters.dateFrom} to ${filters.dateTo}`}</p>
+                    <p className="text-slate-300 text-sm font-bold">{filters.dateFrom === filters.dateTo ? filters.dateFrom : `${filters.dateFrom} to ${filters.dateTo}`}</p>
+                    <p className="text-slate-400 text-xs mt-0.5">Hourly Breakdown</p>
                   </div>
                 </div>
 
@@ -436,53 +437,72 @@ export default function PerPieceCostPage() {
 
                 {/* Process cards */}
                 {data.map((d, di) => (
-                  <div key={di} className={clsx("rounded-xl p-4 mb-3 border-2",
-                    d.overallStatus === 'PROFIT' ? "border-green-200 bg-green-50" :
-                    d.overallStatus === 'LOSS' ? "border-red-200 bg-red-50" : "border-gray-200 bg-gray-50"
-                  )}>
-                    <div className="flex items-center justify-between mb-3">
+                  <div key={di} className="rounded-xl overflow-hidden mb-3 border border-gray-200">
+                    <div className={clsx("px-4 py-3 flex items-center justify-between",
+                      d.overallStatus === 'PROFIT' ? "bg-green-600" :
+                      d.overallStatus === 'LOSS' ? "bg-red-600" : "bg-gray-600"
+                    )}>
                       <div>
-                        <p className="font-black text-gray-900 text-lg">{d.process.name}</p>
-                        <p className="text-xs text-gray-500">{d.shift?.name} · MP: {d.totalProcessMP} total, {d.allocatedMP} allocated, {d.supportingMP} supporting</p>
+                        <p className="font-black text-white text-lg">{d.process.name}</p>
+                        <p className="text-xs text-white/70">{d.shift?.name} &nbsp;|&nbsp; Total MP: {d.totalProcessMP} &nbsp;|&nbsp; Allocated: {d.allocatedMP} &nbsp;|&nbsp; Supporting: {d.supportingMP}</p>
                       </div>
-                      <StatusBadge status={d.overallStatus} />
+                      <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full">{d.overallStatus}</span>
                     </div>
+                    <div className="bg-white p-3">
                     <div className="space-y-2">
-                      {d.rows.map((r: any, ri: number) => (
-                        <div key={ri} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 text-sm">
-                          <span className="text-blue-600 font-medium text-xs w-20">{r.timeSlot?.label}</span>
-                          <span className="text-gray-600 text-xs flex-1 px-2">{r.line.name}</span>
-                          <span className="text-gray-500 text-xs">T:{fmt(r.targetOutput, 0)}</span>
-                          <span className="font-bold text-gray-900 text-xs mx-2">A:{fmt(r.actualOutput, 0)}</span>
-                          <span className={clsx("text-xs font-bold w-14 text-right",
-                            r.achievementPct >= 100 ? "text-green-600" : "text-red-600")}>
-                            {fmt(r.achievementPct, 1)}%
-                          </span>
-                          {showCost && <>
-                            <span className="text-green-600 text-xs mx-1">₹{fmt(r.targetCostPerPiece, 2)}</span>
-                            <span className={clsx("text-xs font-bold",
-                              r.actualCostPerPiece <= r.targetCostPerPiece ? "text-green-600" : "text-red-600")}>
-                              ₹{fmt(r.actualCostPerPiece, 2)}
-                            </span>
-                          </>}
-                          <StatusBadge status={r.status} />
-                        </div>
-                      ))}
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-gray-400">
+                            <th className="text-left py-1.5 font-medium">Time Slot</th>
+                            <th className="text-left py-1.5 font-medium">Line</th>
+                            <th className="text-right py-1.5 font-medium">Target</th>
+                            <th className="text-right py-1.5 font-medium">Actual</th>
+                            <th className="text-right py-1.5 font-medium">Ach%</th>
+                            {showCost && <>
+                              <th className="text-right py-1.5 font-medium text-green-600">₹/Target</th>
+                              <th className="text-right py-1.5 font-medium text-red-600">₹/Actual</th>
+                            </>}
+                            <th className="text-center py-1.5 font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {d.rows.map((r: any, ri: number) => (
+                            <tr key={ri}>
+                              <td className="py-2 text-blue-600 font-semibold">{r.timeSlot?.label}</td>
+                              <td className="py-2 text-gray-700">{r.line.name}</td>
+                              <td className="py-2 text-right text-gray-600">{fmt(r.targetOutput, 0)}</td>
+                              <td className="py-2 text-right font-bold text-gray-900">{fmt(r.actualOutput, 0)}</td>
+                              <td className={clsx("py-2 text-right font-bold", r.achievementPct >= 100 ? "text-green-600" : "text-red-600")}>
+                                {fmt(r.achievementPct, 1)}%
+                              </td>
+                              {showCost && <>
+                                <td className="py-2 text-right text-green-600 font-medium">₹{fmt(r.targetCostPerPiece, 2)}</td>
+                                <td className={clsx("py-2 text-right font-bold", r.actualCostPerPiece <= r.targetCostPerPiece ? "text-green-600" : "text-red-600")}>
+                                  ₹{fmt(r.actualCostPerPiece, 2)}
+                                </td>
+                              </>}
+                              <td className="py-2 text-center"><StatusBadge status={r.status} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                     {showCost && (
-                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
-                        <span className="text-xs text-gray-500">Total: {fmt(d.totalActualOutput, 0)} / {fmt(d.totalTargetOutput, 0)} units</span>
-                        <span className={clsx("font-black text-sm",
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                        <span className="text-xs text-gray-500 font-medium">Total: <b>{fmt(d.totalActualOutput, 0)}</b> / {fmt(d.totalTargetOutput, 0)} units &nbsp;|&nbsp; Ach: {fmt(d.avgAchievement, 1)}%</span>
+                        <span className={clsx("font-black text-base",
                           d.totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
-                          {d.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(d.totalGainLoss), 0)}
+                          {d.totalGainLoss >= 0 ? 'GAIN: +' : 'LOSS: '}₹{fmt(Math.abs(d.totalGainLoss), 0)}
                         </span>
                       </div>
                     )}
+                    </div>
                   </div>
                 ))}
 
-                <div className="mt-4 pt-3 border-t border-gray-100 text-center">
-                  <p className="text-xs text-gray-400">Generated by Costing Tool — Manufacturing ERP · {new Date().toLocaleString('en-IN')}</p>
+                <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <p className="text-xs text-gray-400">Generated by Costing Tool — Manufacturing ERP</p>
+                  <p className="text-xs text-gray-400">{new Date().toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>
