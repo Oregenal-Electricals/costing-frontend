@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { ArrowLeft, Download, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { ArrowLeft, Download, TrendingUp, TrendingDown, Minus, Share2, MessageCircle, Copy, Check, X } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
 import { getToken, getUser } from "@/lib/auth";
 import { canSeeCost, UserRole } from "@/lib/roles";
-import {
-  apiGetPerPieceCostReport, apiGetActiveShifts,
-  apiGetActiveProcesses, MasterItem, ShiftItem
-} from "@/lib/api";
+import { apiGetPerPieceCostReport, apiGetActiveShifts, apiGetActiveProcesses, MasterItem, ShiftItem } from "@/lib/api";
 import * as XLSX from "xlsx";
 
 function fmt(n: number, d = 2) {
@@ -18,16 +15,70 @@ function fmt(n: number, d = 2) {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={clsx("inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-bold",
+    <span className={clsx("inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-bold",
       status === 'PROFIT' ? "bg-green-100 text-green-700" :
-      status === 'LOSS' ? "bg-red-100 text-red-700" :
-      "bg-gray-100 text-gray-600"
+      status === 'LOSS' ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
     )}>
-      {status === 'PROFIT' ? <TrendingUp size={11} /> :
-       status === 'LOSS' ? <TrendingDown size={11} /> :
-       <Minus size={11} />}
+      {status === 'PROFIT' ? <TrendingUp size={10} /> : status === 'LOSS' ? <TrendingDown size={10} /> : <Minus size={10} />}
       {status}
     </span>
+  );
+}
+
+function ShareDialog({ dataUrl, title, onClose }: { dataUrl: string; title: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleWhatsApp = () => {
+    const link = document.createElement('a');
+    link.download = `${title}.png`;
+    link.href = dataUrl;
+    link.click();
+    setTimeout(() => window.open(`https://wa.me/?text=${encodeURIComponent(title)}`, '_blank'), 500);
+  };
+
+  const handleCopy = async () => {
+    try {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const link = document.createElement('a');
+      link.download = `${title}.png`;
+      link.href = dataUrl;
+      link.click();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">Share Report</h3>
+          <button onClick={onClose}><X size={20} className="text-gray-400" /></button>
+        </div>
+        <div className="p-4">
+          <img src={dataUrl} alt="preview" className="w-full rounded-xl border border-gray-200 max-h-48 object-contain bg-gray-50" />
+        </div>
+        <div className="px-4 pb-5 space-y-2">
+          <p className="text-xs text-gray-500 text-center mb-3">Download image then share on WhatsApp</p>
+          <button onClick={handleWhatsApp}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium">
+            <MessageCircle size={20} />Download & Open WhatsApp
+          </button>
+          <button onClick={handleCopy}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-medium border border-blue-200">
+            {copied ? <Check size={20} /> : <Copy size={20} />}
+            {copied ? 'Copied!' : 'Copy to Clipboard'}
+          </button>
+          <button onClick={() => { const l = document.createElement('a'); l.download = `${title}.png`; l.href = dataUrl; l.click(); }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl font-medium border border-gray-200">
+            <Download size={20} />Download PNG
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -37,6 +88,9 @@ export default function PerPieceCostPage() {
   const [loading, setLoading] = useState(false);
   const [shifts, setShifts] = useState<ShiftItem[]>([]);
   const [processes, setProcesses] = useState<MasterItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'table' | 'card'>('table');
+  const [shareDialog, setShareDialog] = useState<{ dataUrl: string; title: string } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState({
     dateFrom: new Date().toISOString().split('T')[0],
     dateTo: new Date().toISOString().split('T')[0],
@@ -66,67 +120,83 @@ export default function PerPieceCostPage() {
       });
       setData(res.data || []);
       setSummary(res.summary);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, [filters]);
 
   useEffect(() => { load(); }, [load]);
 
+  const handleShare = async () => {
+    const html2canvas = (await import('html2canvas')).default;
+    const el = cardRef.current;
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    const dataUrl = canvas.toDataURL('image/png');
+    const title = `Per Piece Cost Report ${filters.dateFrom}`;
+    setShareDialog({ dataUrl, title });
+  };
+
   const exportExcel = () => {
     const rows: any[] = [];
     for (const d of data) {
-      for (const l of d.lines) {
+      for (const r of d.rows) {
         rows.push({
           'Date': d.date,
           'Process': d.process.name,
           'Shift': d.shift?.name,
+          'Time Slot': r.timeSlot?.label,
           'Total MP (Plan)': d.totalProcessMP,
           'Allocated MP': d.allocatedMP,
           'Supporting MP': d.supportingMP,
-          'Line': l.line.name,
-          'Product': l.product.name,
-          'Line MP': l.manpowerCount,
-          'Line Share %': fmt(l.lineSharePct, 1) + '%',
-          'Line True Cost': showCost ? fmt(l.lineTrueCost) : '——',
-          'Target Output': fmt(l.targetOutput, 0),
-          'Actual Output': fmt(l.actualOutput, 0),
-          'Achievement %': fmt(l.achievementPct, 1) + '%',
-          'TARGET ₹/Piece': showCost ? fmt(l.targetCostPerPiece, 4) : '——',
-          'ACTUAL ₹/Piece': showCost ? fmt(l.actualCostPerPiece, 4) : '——',
-          'Cost Diff/Piece': showCost ? fmt(l.costDifference, 4) : '——',
-          'Gain/Loss': showCost ? fmt(l.gainLoss) : '——',
-          'Status': l.status,
+          'Line': r.line.name,
+          'Product': r.product.name,
+          'Line MP': r.lineMP,
+          'Line Share %': fmt(r.lineSharePct, 1) + '%',
+          'Slot Cost': showCost ? fmt(r.slotCost) : '——',
+          'Line Cost': showCost ? fmt(r.lineTrueCost) : '——',
+          'Target Qty': fmt(r.targetOutput, 0),
+          'Actual Qty': fmt(r.actualOutput, 0),
+          'Achievement %': fmt(r.achievementPct, 1) + '%',
+          'TARGET ₹/Piece': showCost ? fmt(r.targetCostPerPiece, 2) : '——',
+          'ACTUAL ₹/Piece': showCost ? fmt(r.actualCostPerPiece, 2) : '——',
+          'Diff ₹/Piece': showCost ? fmt(r.costDifference, 2) : '——',
+          'Gain/Loss': showCost ? fmt(r.gainLoss) : '——',
+          'Status': r.status,
         });
       }
     }
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = Object.keys(rows[0] || {}).map(() => ({ wch: 18 }));
-    XLSX.utils.book_append_sheet(wb, ws, 'Per Piece Cost Report');
-    XLSX.writeFile(wb, `per-piece-cost-${filters.dateFrom}-${filters.dateTo}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'Per Piece Cost');
+    XLSX.writeFile(wb, `per-piece-${filters.dateFrom}.xlsx`);
   };
 
   return (
     <div className="space-y-5">
+      {shareDialog && <ShareDialog dataUrl={shareDialog.dataUrl} title={shareDialog.title} onClose={() => setShareDialog(null)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/reports"
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+          <Link href="/reports" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Per Piece Cost Report</h2>
-            <p className="text-sm text-gray-500">Target vs Actual cost per piece by process</p>
+            <p className="text-sm text-gray-500">Target vs Actual cost per piece — hourly</p>
           </div>
         </div>
-        <button onClick={exportExcel}
-          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
-          <Download size={16} />Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportExcel}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
+            <Download size={16} />Excel
+          </button>
+          <button onClick={handleShare}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
+            <Share2 size={16} />Share
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -145,8 +215,7 @@ export default function PerPieceCostPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Shift</label>
-          <select value={filters.shiftId}
-            onChange={(e) => setFilters(f => ({ ...f, shiftId: e.target.value }))}
+          <select value={filters.shiftId} onChange={(e) => setFilters(f => ({ ...f, shiftId: e.target.value }))}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">All Shifts</option>
             {shifts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -154,8 +223,7 @@ export default function PerPieceCostPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Process</label>
-          <select value={filters.processId}
-            onChange={(e) => setFilters(f => ({ ...f, processId: e.target.value }))}
+          <select value={filters.processId} onChange={(e) => setFilters(f => ({ ...f, processId: e.target.value }))}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">All Processes</option>
             {processes.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -163,18 +231,15 @@ export default function PerPieceCostPage() {
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Summary Cards */}
       {summary && showCost && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: "Total Process Cost", value: `₹${fmt(summary.totalProcessCost)}`, color: "text-blue-700" },
             { label: "Total Target Output", value: fmt(summary.totalTargetOutput, 0), color: "text-gray-700" },
             { label: "Total Actual Output", value: fmt(summary.totalActualOutput, 0), color: "text-gray-900" },
-            {
-              label: "Net Gain/Loss",
-              value: `${summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(summary.totalGainLoss))}`,
-              color: summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
-            },
+            { label: "Net Gain/Loss", value: `${summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(summary.totalGainLoss))}`,
+              color: summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600" },
           ].map(c => (
             <div key={c.label} className="bg-white rounded-xl border border-gray-200 p-4">
               <p className="text-xs text-gray-500">{c.label}</p>
@@ -184,153 +249,245 @@ export default function PerPieceCostPage() {
         </div>
       )}
 
-      {/* Report */}
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {[{ key: 'table', label: '📊 Detailed Table' }, { key: 'card', label: '📱 WhatsApp Card' }].map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key as any)}
+            className={clsx("px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === t.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            )}>{t.label}</button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : data.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-          No data found for selected filters
-        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">No data found</div>
       ) : (
-        <div className="space-y-5">
-          {data.map((d, di) => (
-            <div key={di} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-
-              {/* Process Header */}
-              <div className="bg-slate-800 px-6 py-4">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div>
-                    <p className="text-slate-400 text-xs uppercase tracking-wider">{d.date} · {d.shift?.name}</p>
-                    <h3 className="text-white font-black text-xl mt-0.5">{d.process.name}</h3>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <p className="text-slate-400 text-xs">Total MP</p>
-                      <p className="text-white font-bold text-2xl">{d.totalProcessMP}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-slate-400 text-xs">Allocated</p>
-                      <p className="text-blue-400 font-bold text-2xl">{d.allocatedMP}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-slate-400 text-xs">Supporting</p>
-                      <p className="text-yellow-400 font-bold text-2xl">{d.supportingMP}</p>
-                    </div>
-                    {showCost && (
-                      <div className="text-center">
-                        <p className="text-slate-400 text-xs">Total Cost</p>
-                        <p className="text-white font-bold text-xl">₹{fmt(d.totalProcessCost, 0)}</p>
+        <>
+          {/* TABLE TAB */}
+          {activeTab === 'table' && (
+            <div className="space-y-5">
+              {data.map((d, di) => (
+                <div key={di} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  {/* Process Header */}
+                  <div className="bg-slate-800 px-6 py-4">
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div>
+                        <p className="text-slate-400 text-xs uppercase tracking-wider">{d.date} · {d.shift?.name}</p>
+                        <h3 className="text-white font-black text-xl mt-0.5">{d.process.name}</h3>
                       </div>
-                    )}
-                    <StatusBadge status={d.overallStatus} />
+                      <div className="flex items-center gap-5">
+                        <div className="text-center">
+                          <p className="text-slate-400 text-xs">Total MP</p>
+                          <p className="text-white font-black text-2xl">{d.totalProcessMP}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-400 text-xs">Allocated</p>
+                          <p className="text-blue-400 font-black text-2xl">{d.allocatedMP}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-400 text-xs">Supporting</p>
+                          <p className="text-yellow-400 font-black text-2xl">{d.supportingMP}</p>
+                        </div>
+                        {showCost && (
+                          <>
+                            <div className="text-center">
+                              <p className="text-slate-400 text-xs">Total Cost</p>
+                              <p className="text-white font-bold text-lg">₹{fmt(d.totalLineCost, 0)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-slate-400 text-xs">Overall ₹/Target</p>
+                              <p className="text-green-400 font-bold">₹{fmt(d.overallTargetCPP, 2)}</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-slate-400 text-xs">Overall ₹/Actual</p>
+                              <p className={clsx("font-bold", d.overallActualCPP <= d.overallTargetCPP ? "text-green-400" : "text-red-400")}>
+                                ₹{fmt(d.overallActualCPP, 2)}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        <StatusBadge status={d.overallStatus} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rows Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Time Slot</th>
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Line</th>
+                          <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Product</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Line MP</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Share%</th>
+                          {showCost && <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase bg-blue-50">Line Cost</th>}
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Target</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Actual</th>
+                          <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Ach%</th>
+                          {showCost && <>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-green-600 uppercase bg-green-50">Target ₹/pc</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-red-600 uppercase bg-red-50">Actual ₹/pc</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Diff</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">G/L</th>
+                          </>}
+                          <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {d.rows.map((r: any, ri: number) => (
+                          <tr key={ri} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 text-xs font-medium text-blue-700">{r.timeSlot?.label}</td>
+                            <td className="px-4 py-2.5 font-medium text-gray-800">{r.line.name}</td>
+                            <td className="px-4 py-2.5 text-gray-600 text-xs">{r.product.name}</td>
+                            <td className="px-4 py-2.5 text-right font-bold text-blue-700">{r.lineMP}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-500">{fmt(r.lineSharePct, 1)}%</td>
+                            {showCost && <td className="px-4 py-2.5 text-right bg-blue-50 font-medium text-blue-700">₹{fmt(r.lineTrueCost, 0)}</td>}
+                            <td className="px-4 py-2.5 text-right text-gray-700">{fmt(r.targetOutput, 0)}</td>
+                            <td className="px-4 py-2.5 text-right font-bold text-gray-900">{fmt(r.actualOutput, 0)}</td>
+                            <td className={clsx("px-4 py-2.5 text-right font-bold", r.achievementPct >= 100 ? "text-green-600" : "text-red-600")}>
+                              {fmt(r.achievementPct, 1)}%
+                            </td>
+                            {showCost && <>
+                              <td className="px-4 py-2.5 text-right bg-green-50 font-bold text-green-700">₹{fmt(r.targetCostPerPiece, 2)}</td>
+                              <td className={clsx("px-4 py-2.5 text-right bg-red-50 font-bold",
+                                r.actualCostPerPiece <= r.targetCostPerPiece ? "text-green-600" : "text-red-600")}>
+                                ₹{fmt(r.actualCostPerPiece, 2)}
+                              </td>
+                              <td className={clsx("px-4 py-2.5 text-right font-bold",
+                                r.costDifference <= 0 ? "text-green-600" : "text-red-600")}>
+                                {r.costDifference >= 0 ? '+' : ''}₹{fmt(r.costDifference, 2)}
+                              </td>
+                              <td className={clsx("px-4 py-2.5 text-right font-bold",
+                                r.gainLoss >= 0 ? "text-green-600" : "text-red-600")}>
+                                {r.gainLoss >= 0 ? '+' : ''}₹{fmt(r.gainLoss, 0)}
+                              </td>
+                            </>}
+                            <td className="px-4 py-2.5 text-center"><StatusBadge status={r.status} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-50 border-t-2 border-slate-300 font-bold">
+                          <td colSpan={showCost ? 5 : 5} className="px-4 py-3 text-gray-700 font-black">TOTAL</td>
+                          {showCost && <td className="px-4 py-3 text-right bg-blue-50 text-blue-700 font-black">₹{fmt(d.totalLineCost, 0)}</td>}
+                          <td className="px-4 py-3 text-right text-gray-700">{fmt(d.totalTargetOutput, 0)}</td>
+                          <td className="px-4 py-3 text-right text-gray-900 font-black">{fmt(d.totalActualOutput, 0)}</td>
+                          <td className={clsx("px-4 py-3 text-right font-black", d.avgAchievement >= 100 ? "text-green-600" : "text-red-600")}>
+                            {fmt(d.avgAchievement, 1)}%
+                          </td>
+                          {showCost && <>
+                            <td className="px-4 py-3 bg-green-50 text-right font-black text-green-700">₹{fmt(d.overallTargetCPP, 2)}</td>
+                            <td className={clsx("px-4 py-3 bg-red-50 text-right font-black",
+                              d.overallActualCPP <= d.overallTargetCPP ? "text-green-600" : "text-red-600")}>
+                              ₹{fmt(d.overallActualCPP, 2)}
+                            </td>
+                            <td className="px-4 py-3"></td>
+                            <td className={clsx("px-4 py-3 text-right font-black", d.totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
+                              {d.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(d.totalGainLoss), 0)}
+                            </td>
+                          </>}
+                          <td className="px-4 py-3 text-center"><StatusBadge status={d.overallStatus} /></td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          )}
 
-              {/* Line Details */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Line</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Product</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">MP</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Share%</th>
-                      {showCost && <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase bg-blue-50">Line Cost</th>}
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Target Qty</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actual Qty</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Ach%</th>
-                      {showCost && <>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-green-600 uppercase bg-green-50">Target ₹/Piece</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-red-600 uppercase bg-red-50">Actual ₹/Piece</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Diff ₹/Piece</th>
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Gain/Loss</th>
-                      </>}
-                      <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {d.lines.map((l: any, li: number) => (
-                      <tr key={li} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-800">{l.line.name}</td>
-                        <td className="px-4 py-3 text-gray-600 text-xs">{l.product.name}</td>
-                        <td className="px-4 py-3 text-right font-bold text-blue-700">{l.manpowerCount}</td>
-                        <td className="px-4 py-3 text-right text-gray-500">{fmt(l.lineSharePct, 1)}%</td>
-                        {showCost && (
-                          <td className="px-4 py-3 text-right bg-blue-50 font-medium text-blue-700">
-                            ₹{fmt(l.lineTrueCost, 0)}
-                          </td>
-                        )}
-                        <td className="px-4 py-3 text-right text-gray-700">{fmt(l.targetOutput, 0)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-900">{fmt(l.actualOutput, 0)}</td>
-                        <td className={clsx("px-4 py-3 text-right font-bold",
-                          l.achievementPct >= 100 ? "text-green-600" : "text-red-600"
-                        )}>{fmt(l.achievementPct, 1)}%</td>
-                        {showCost && <>
-                          <td className="px-4 py-3 text-right bg-green-50">
-                            <span className="font-bold text-green-700">₹{fmt(l.targetCostPerPiece, 2)}</span>
-                          </td>
-                          <td className="px-4 py-3 text-right bg-red-50">
-                            <span className={clsx("font-bold",
-                              l.actualCostPerPiece <= l.targetCostPerPiece ? "text-green-600" : "text-red-600"
-                            )}>₹{fmt(l.actualCostPerPiece, 2)}</span>
-                          </td>
-                          <td className={clsx("px-4 py-3 text-right font-bold",
-                            l.costDifference <= 0 ? "text-green-600" : "text-red-600"
-                          )}>
-                            {l.costDifference >= 0 ? '+' : ''}₹{fmt(l.costDifference, 2)}
-                          </td>
-                          <td className={clsx("px-4 py-3 text-right font-bold",
-                            l.gainLoss >= 0 ? "text-green-600" : "text-red-600"
-                          )}>
-                            {l.gainLoss >= 0 ? '+' : ''}₹{fmt(l.gainLoss, 0)}
-                          </td>
-                        </>}
-                        <td className="px-4 py-3 text-center">
-                          <StatusBadge status={l.status} />
-                        </td>
-                      </tr>
+          {/* WHATSAPP CARD TAB */}
+          {activeTab === 'card' && (
+            <div>
+              <div ref={cardRef} className="bg-white rounded-2xl border border-gray-200 p-6 max-w-2xl">
+                {/* Card Header */}
+                <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-100">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Costing Tool — Manufacturing ERP</p>
+                    <h3 className="text-xl font-black text-gray-900 mt-0.5">Per Piece Cost Report</h3>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-gray-700">{filters.dateFrom === filters.dateTo ? filters.dateFrom : `${filters.dateFrom} to ${filters.dateTo}`}</p>
+                  </div>
+                </div>
+
+                {/* Summary row */}
+                {showCost && summary && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                    {[
+                      { label: "Total Cost", value: `₹${fmt(summary.totalProcessCost, 0)}`, color: "text-blue-700" },
+                      { label: "Target Output", value: fmt(summary.totalTargetOutput, 0), color: "text-gray-700" },
+                      { label: "Actual Output", value: fmt(summary.totalActualOutput, 0), color: "text-gray-900" },
+                      { label: "Net Gain/Loss", value: `${summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(summary.totalGainLoss), 0)}`,
+                        color: summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600" },
+                    ].map(c => (
+                      <div key={c.label} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-500">{c.label}</p>
+                        <p className={clsx("text-lg font-black mt-0.5", c.color)}>{c.value}</p>
+                      </div>
                     ))}
-                  </tbody>
+                  </div>
+                )}
 
-                  {/* Process Total */}
-                  <tfoot>
-                    <tr className="bg-slate-50 border-t-2 border-slate-300 font-bold">
-                      <td colSpan={showCost ? 4 : 4} className="px-4 py-3 text-gray-700 font-black">
-                        TOTAL — {d.process.name}
-                      </td>
-                      {showCost && (
-                        <td className="px-4 py-3 text-right bg-blue-50 text-blue-700 font-black">
-                          ₹{fmt(d.totalProcessCost, 0)}
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-right text-gray-700">{fmt(d.totalTargetOutput, 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-900 font-black">{fmt(d.totalActualOutput, 0)}</td>
-                      <td className={clsx("px-4 py-3 text-right font-black",
-                        d.avgAchievement >= 100 ? "text-green-600" : "text-red-600"
-                      )}>{fmt(d.avgAchievement, 1)}%</td>
-                      {showCost && <>
-                        <td className="px-4 py-3 bg-green-50"></td>
-                        <td className="px-4 py-3 bg-red-50"></td>
-                        <td className="px-4 py-3"></td>
-                        <td className={clsx("px-4 py-3 text-right font-black",
-                          d.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
-                        )}>
+                {/* Process cards */}
+                {data.map((d, di) => (
+                  <div key={di} className={clsx("rounded-xl p-4 mb-3 border-2",
+                    d.overallStatus === 'PROFIT' ? "border-green-200 bg-green-50" :
+                    d.overallStatus === 'LOSS' ? "border-red-200 bg-red-50" : "border-gray-200 bg-gray-50"
+                  )}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-black text-gray-900 text-lg">{d.process.name}</p>
+                        <p className="text-xs text-gray-500">{d.shift?.name} · MP: {d.totalProcessMP} total, {d.allocatedMP} allocated, {d.supportingMP} supporting</p>
+                      </div>
+                      <StatusBadge status={d.overallStatus} />
+                    </div>
+                    <div className="space-y-2">
+                      {d.rows.map((r: any, ri: number) => (
+                        <div key={ri} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 text-sm">
+                          <span className="text-blue-600 font-medium text-xs w-20">{r.timeSlot?.label}</span>
+                          <span className="text-gray-600 text-xs flex-1 px-2">{r.line.name}</span>
+                          <span className="text-gray-500 text-xs">T:{fmt(r.targetOutput, 0)}</span>
+                          <span className="font-bold text-gray-900 text-xs mx-2">A:{fmt(r.actualOutput, 0)}</span>
+                          <span className={clsx("text-xs font-bold w-14 text-right",
+                            r.achievementPct >= 100 ? "text-green-600" : "text-red-600")}>
+                            {fmt(r.achievementPct, 1)}%
+                          </span>
+                          {showCost && <>
+                            <span className="text-green-600 text-xs mx-1">₹{fmt(r.targetCostPerPiece, 2)}</span>
+                            <span className={clsx("text-xs font-bold",
+                              r.actualCostPerPiece <= r.targetCostPerPiece ? "text-green-600" : "text-red-600")}>
+                              ₹{fmt(r.actualCostPerPiece, 2)}
+                            </span>
+                          </>}
+                          <StatusBadge status={r.status} />
+                        </div>
+                      ))}
+                    </div>
+                    {showCost && (
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-200">
+                        <span className="text-xs text-gray-500">Total: {fmt(d.totalActualOutput, 0)} / {fmt(d.totalTargetOutput, 0)} units</span>
+                        <span className={clsx("font-black text-sm",
+                          d.totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
                           {d.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(d.totalGainLoss), 0)}
-                        </td>
-                      </>}
-                      <td className="px-4 py-3 text-center">
-                        <StatusBadge status={d.overallStatus} />
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className="mt-4 pt-3 border-t border-gray-100 text-center">
+                  <p className="text-xs text-gray-400">Generated by Costing Tool — Manufacturing ERP · {new Date().toLocaleString('en-IN')}</p>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
