@@ -127,13 +127,18 @@ export default function PerPieceCostPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleShare = async () => {
-    const html2canvas = (await import('html2canvas')).default;
     const el = cardRef.current;
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
-    const dataUrl = canvas.toDataURL('image/png');
-    const title = `Per Piece Cost Report ${filters.dateFrom}`;
-    setShareDialog({ dataUrl, title });
+    try {
+      const domtoimage = (await import('dom-to-image-more')).default;
+      const dataUrl = await domtoimage.toPng(el, { scale: 2, bgcolor: '#ffffff' });
+      const title = `Per Piece Cost Report ${filters.dateFrom}`;
+      setShareDialog({ dataUrl, title });
+    } catch (err) {
+      console.error(err);
+      // Fallback: just download as PNG directly
+      alert('Share not supported on this browser. Use Excel export instead.');
+    }
   };
 
   const exportExcel = () => {
