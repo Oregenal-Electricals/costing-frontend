@@ -1010,3 +1010,8 @@ export async function apiGetSpareMPReport(
   if (processId) q.set('processId', String(processId));
   return apiFetch(`/api/v1/production-entries/spare-mp-report?${q}`, token);
 }
+
+// ─── PER PIECE COST REPORT ───────────────────────────
+export async function apiGetPerPieceCostReport(token: string, q?: ReportQuery) {
+  return apiFetch<any>(`/api/v1/reports/per-piece-cost?${buildReportQuery(q)}`, token);
+}
