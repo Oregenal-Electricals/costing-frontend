@@ -30,6 +30,7 @@ export default function ProductionEntryForm({
   const [error, setError] = useState("");
   const [timeSlots, setTimeSlots] = useState<TimeSlotOption[]>([]);
   const [preload, setPreload] = useState<PreloadData | null>(null);
+  const [takenSlots, setTakenSlots] = useState<number[]>([]);
   const [preview, setPreview] = useState<ProductionPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -37,7 +38,7 @@ export default function ProductionEntryForm({
     date: new Date().toISOString().split('T')[0],
     shiftId: "", timeSlotId: "", processId: "", lineId: "",
     productId: "", customerId: "",
-    supervisorId: "", manpowerCount: "", shiftHours: "8",
+    supervisorId: "", manpowerCount: "", shiftHours: "1",
     actualOutput: "", rejectedQty: "0", remarks: "", notes: "",
   });
 
@@ -50,6 +51,25 @@ export default function ProductionEntryForm({
       .then(setTimeSlots)
       .catch(console.error);
   }, [form.shiftId]);
+
+  // Load taken time slots for this date+shift+process+line
+  useEffect(() => {
+    if (!form.date || !form.shiftId || !form.processId || !form.lineId) return;
+    const token = getToken();
+    if (!token) return;
+    // Fetch existing entries to find taken slots
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/v1/production-entries?date=${form.date}&shiftId=${form.shiftId}&processId=${form.processId}&lineId=${form.lineId}&limit=50`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        const taken = (data.data || []).map((e: any) => e.timeSlotId);
+        setTakenSlots(taken);
+        // Reset time slot if it was taken
+        setForm(prev => ({ ...prev, timeSlotId: taken.includes(Number(prev.timeSlotId)) ? '' : prev.timeSlotId }));
+      })
+      .catch(console.error);
+  }, [form.date, form.shiftId, form.processId, form.lineId]);
 
   // Load preload data when date/shift/process/line changes
   useEffect(() => {
@@ -173,20 +193,7 @@ export default function ProductionEntryForm({
               </div>
             </div>
 
-            {/* Row 2: Time Slot */}
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Time Slot *</label>
-              <select name="timeSlotId" value={form.timeSlotId} onChange={handleChange} required className={inputCls}
-                disabled={!form.shiftId}>
-                <option value="">Select time slot</option>
-                {timeSlots.map((t) => <option key={t.id} value={t.id}>{t.label} ({t.startTime}–{t.endTime})</option>)}
-              </select>
-              {form.shiftId && timeSlots.length === 0 && (
-                <p className="text-xs text-yellow-600 mt-1">⚠️ No time slots found. Add them in Master Data → Time Slots.</p>
-              )}
-            </div>
-
-            {/* Row 3: Process + Line */}
+            {/* Row 2: Process + Line */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Process *</label>
@@ -202,6 +209,32 @@ export default function ProductionEntryForm({
                   {lines.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
+            </div>
+
+            {/* Row 3: Time Slot — after line selected, shows available slots only */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Time Slot *
+                {takenSlots.length > 0 && (
+                  <span className="text-xs text-orange-500 ml-2">({takenSlots.length} slot(s) already entered)</span>
+                )}
+              </label>
+              <select name="timeSlotId" value={form.timeSlotId} onChange={handleChange} required className={inputCls}
+                disabled={!form.shiftId || !form.lineId}>
+                <option value="">Select time slot</option>
+                {timeSlots.map((t) => (
+                  <option key={t.id} value={t.id} disabled={takenSlots.includes(t.id)}>
+                    {t.label} ({t.startTime}–{t.endTime})
+                    {takenSlots.includes(t.id) ? ' ✓ Done' : ''}
+                  </option>
+                ))}
+              </select>
+              {form.shiftId && timeSlots.length === 0 && (
+                <p className="text-xs text-yellow-600 mt-1">⚠️ No time slots found. Add them in Master Data → Time Slots.</p>
+              )}
+              {!form.lineId && form.shiftId && (
+                <p className="text-xs text-gray-400 mt-1">Select a line first to see available time slots</p>
+              )}
             </div>
 
             {/* Row 4: Product + Customer */}
