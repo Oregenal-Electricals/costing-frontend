@@ -140,11 +140,11 @@ export default function ProductionEntryPage() {
             { label: "Loss", value: summary.loss, color: "text-red-600" },
             { label: "Neutral", value: summary.neutral, color: "text-gray-600" },
             { label: "Total Output", value: fmt(summary.totalOutput, 0), color: "text-purple-600" },
-            {
+            ...(showCost ? [{
               label: "Net Gain/Loss",
               value: `₹${fmt(Math.abs(summary.totalGainLoss))}`,
               color: summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
-            },
+            }] : []),
           ].map((card) => (
             <div key={card.label} className="bg-white rounded-xl border border-gray-200 p-3">
               <p className="text-xs text-gray-500">{card.label}</p>
