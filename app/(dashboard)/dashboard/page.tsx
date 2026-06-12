@@ -150,7 +150,8 @@ export default function DashboardPage() {
               },
               {
                 label: "Labour Gain/Loss",
-                value: `${isProfit ? '+' : '-'}${fmtCurrency(s?.totalGainLoss || 0)}`,
+                hide: !showCost,
+                value: showCost ? `${isProfit ? '+' : '-'}${fmtCurrency(s?.totalGainLoss || 0)}` : '——',
                 sub: isProfit ? "PROFIT" : "LOSS",
                 icon: isProfit ? <TrendingUp size={22} /> : <TrendingDown size={22} />,
                 color: isProfit ? "text-green-600" : "text-red-600",
@@ -190,13 +191,14 @@ export default function DashboardPage() {
               },
               {
                 label: "Labour Cost",
-                value: `₹${fmt(s?.totalLabourCost || 0)}`,
+                hide: !showCost,
+                value: showCost ? `₹${fmt(s?.totalLabourCost || 0)}` : '——',
                 sub: "Today's total",
                 icon: <Zap size={22} />,
                 color: "text-indigo-600",
                 bg: "bg-indigo-50",
               },
-            ].map((card) => (
+            ].filter((card) => !card.hide).map((card) => (
               <div key={card.label} className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -220,7 +222,7 @@ export default function DashboardPage() {
                 Alert Center
               </h3>
               <div className="space-y-2">
-                {data.alerts.map((alert: any, i: number) => (
+                {data.alerts.filter((a: any) => showCost || !(a.message?.toLowerCase().includes('loss') || a.title?.toLowerCase().includes('loss'))).map((alert: any, i: number) => (
                   <div key={i} className={clsx("flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm",
                     alert.severity === 'error' ? "bg-red-50 text-red-700 border border-red-100" :
                     alert.severity === 'warning' ? "bg-yellow-50 text-yellow-700 border border-yellow-100" :
@@ -280,7 +282,7 @@ export default function DashboardPage() {
                         <span className={clsx("text-xs font-bold",
                           l.summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
                         )}>
-                          {l.summary.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(l.summary.totalGainLoss))}
+                          {showCost ? `${l.summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(l.summary.totalGainLoss))}` : '——'}
                         </span>
                       </div>
                       <AchievementBar pct={l.summary.avgAchievement} />
@@ -296,7 +298,7 @@ export default function DashboardPage() {
                             <span className={clsx("text-xs font-bold",
                               l.summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600"
                             )}>
-                              {l.summary.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(l.summary.totalGainLoss))}
+                              {showCost ? `${l.summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(l.summary.totalGainLoss))}` : '——'}
                             </span>
                           </div>
                           <AchievementBar pct={l.summary.avgAchievement} />
@@ -427,7 +429,7 @@ export default function DashboardPage() {
                 { label: "Manpower", value: fmt(s?.totalManpower || 0), color: "text-purple-400" },
                 {
                   label: "Gain/Loss",
-                  value: `${isProfit ? '+' : '-'}${fmtCurrency(s?.totalGainLoss || 0)}`,
+                  value: showCost ? `${isProfit ? '+' : '-'}${fmtCurrency(s?.totalGainLoss || 0)}` : '——',
                   color: isProfit ? "text-green-400" : "text-red-400"
                 },
               ].map((item) => (
