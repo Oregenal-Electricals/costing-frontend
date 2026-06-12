@@ -258,7 +258,7 @@ export default function DashboardPage() {
                         <span>T: {fmt(p.summary.totalTargetOutput)}</span>
                         <span>A: {fmt(p.summary.totalActualOutput)}</span>
                         <span className={p.summary.totalGainLoss >= 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
-                          {p.summary.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(p.summary.totalGainLoss))}
+                          {showCost ? `${p.summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(p.summary.totalGainLoss))}` : '——'}
                         </span>
                       </div>
                     </div>
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                         </td>
                         <td className={clsx("px-4 py-2.5 text-right font-bold",
                           p.summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
-                          {p.summary.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(p.summary.totalGainLoss))}
+                          {showCost ? `${p.summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(p.summary.totalGainLoss))}` : '——'}
                         </td>
                       </tr>
                     ))}
@@ -395,7 +395,7 @@ export default function DashboardPage() {
                         </td>
                         <td className={clsx("px-4 py-2.5 text-right font-bold",
                           c.summary.totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
-                          {c.summary.totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(c.summary.totalGainLoss))}
+                          {showCost ? `${c.summary.totalGainLoss >= 0 ? '+' : ''}₹${fmt(Math.abs(c.summary.totalGainLoss))}` : '——'}
                         </td>
                       </tr>
                     ))}
