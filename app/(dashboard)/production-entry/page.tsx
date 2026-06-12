@@ -237,14 +237,14 @@ export default function ProductionEntryPage() {
                         </span>
                       </td>
                       {showCost && <td className="px-3 py-3 text-xs text-gray-700">₹{fmt(entry.labourCost)}</td>}
-                      <td className="px-3 py-3 text-xs">
+                      {showCost && <td className="px-3 py-3 text-xs">
                         <span className={clsx("font-bold",
                           Number(entry.labourGainLoss) > 0 ? "text-green-600" :
                           Number(entry.labourGainLoss) < 0 ? "text-red-600" : "text-gray-500"
                         )}>
                           {Number(entry.labourGainLoss) >= 0 ? '+' : ''}₹{fmt(entry.labourGainLoss)}
                         </span>
-                      </td>
+                      </td>}
                       <td className="px-3 py-3">
                         <StatusBadge status={entry.status} />
                       </td>
