@@ -2,6 +2,8 @@
 
 import { clsx } from "clsx";
 import { ProductionPreview } from "@/lib/api";
+import { getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface Props {
@@ -17,6 +19,8 @@ function fmtCurrency(n: number) {
 }
 
 export default function CalculationPreview({ preview }: Props) {
+  const user = getUser();
+  const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
   const { rateTarget, calculations } = preview;
   const isProfit = calculations.status === 'PROFIT';
   const isLoss = calculations.status === 'LOSS';

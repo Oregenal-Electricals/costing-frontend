@@ -1,4 +1,6 @@
 "use client";
+import { getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 
 import RoleGuard from "@/components/auth/RoleGuard";
 import { useEffect, useState, useCallback } from "react";
@@ -15,6 +17,8 @@ import RateTargetFormModal from "@/components/rate-targets/RateTargetFormModal";
 const LIMIT = 10;
 
 export default function RateTargetsPage() {
+  const user = getUser();
+  const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
   const [data, setData] = useState<RateTarget[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -230,9 +234,9 @@ export default function RateTargetsPage() {
                       <p className="text-xs text-gray-400">{item.customer.code}</p>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{item.process.name}</td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">₹{Number(item.hourlyRate).toFixed(2)}</td>
+                    {showCost && <td className="px-4 py-3 text-gray-700 font-medium">₹{Number(item.hourlyRate).toFixed(2)}</td>}
                     <td className="px-4 py-3 text-gray-700">{Number(item.targetPerHour).toFixed(0)}</td>
-                    <td className="px-4 py-3 text-gray-700">₹{Number(item.ratePerPiece).toFixed(4)}</td>
+                    {showCost && <td className="px-4 py-3 text-gray-700">₹{Number(item.ratePerPiece).toFixed(4)}</td>}
                     <td className="px-4 py-3 text-gray-600">{formatDate(item.effectiveFrom)}</td>
                     <td className="px-4 py-3 text-gray-600">{item.effectiveTo ? formatDate(item.effectiveTo) : '—'}</td>
                     <td className="px-4 py-3">

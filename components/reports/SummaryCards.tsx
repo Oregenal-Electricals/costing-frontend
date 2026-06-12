@@ -1,3 +1,6 @@
+"use client";
+import { getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 import { clsx } from "clsx";
 import { ReportSummary } from "@/lib/api";
 
@@ -8,6 +11,8 @@ function fmt(n: number, d = 0) {
 }
 
 export default function SummaryCards({ summary }: Props) {
+  const user = getUser();
+  const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
   const isGain = summary.totalGainLoss >= 0;
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -15,8 +20,8 @@ export default function SummaryCards({ summary }: Props) {
         { label: "Total Entries", value: fmt(summary.totalEntries), color: "text-blue-600" },
         { label: "Total Output", value: fmt(summary.totalActualOutput), color: "text-purple-600" },
         { label: "Avg Achievement", value: `${fmt(summary.avgAchievement, 1)}%`, color: summary.avgAchievement >= 100 ? "text-green-600" : "text-red-600" },
-        { label: "Total Labour Cost", value: `₹${fmt(summary.totalLabourCost)}`, color: "text-gray-700" },
-        { label: "Net Gain/Loss", value: `${isGain ? '+' : ''}₹${fmt(Math.abs(summary.totalGainLoss))}`, color: isGain ? "text-green-600" : "text-red-600" },
+        { label: "Total Labour Cost", value: showCost ? `₹${fmt(summary.totalLabourCost)}` : "——", color: showCost ? "text-gray-700" : "text-gray-400" },
+        { label: "Net Gain/Loss", value: showCost ? `${isGain ? '+' : ''}₹${fmt(Math.abs(summary.totalGainLoss))}` : "——", color: showCost ? (isGain ? "text-green-600" : "text-red-600") : "text-gray-400" },
         { label: "Profit Entries", value: fmt(summary.profit), color: "text-green-600" },
         { label: "Loss Entries", value: fmt(summary.loss), color: "text-red-600" },
         { label: "Neutral", value: fmt(summary.neutral), color: "text-gray-500" },

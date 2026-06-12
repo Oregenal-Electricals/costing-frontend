@@ -9,7 +9,8 @@ import {
   apiGetProductionEntries, apiGetActiveProcesses, apiGetActiveShifts,
   apiGetActiveLines, apiGetActiveProducts, apiGetActiveCustomers, apiGetSupervisors,
 } from "@/lib/api";
-import { getToken } from "@/lib/auth";
+import { getToken, getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 import RoleGuard from "@/components/auth/RoleGuard";
 import ProductionEntryForm from "@/components/production-entry/ProductionEntryForm";
 
@@ -50,6 +51,9 @@ export default function ProductionEntryPage() {
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [correctionEntry, setCorrectionEntry] = useState<ProductionEntry | null>(null);
+
+  const user = getUser();
+  const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -200,7 +204,7 @@ export default function ProductionEntryPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    {["Date", "Shift/Slot", "Process/Line", "Product", "Customer", "MP", "Hrs", "Target", "Actual", "Ach%", "Labour Cost", "Gain/Loss", "Status", ""].map((h) => (
+                    {["Date", "Shift/Slot", "Process/Line", "Product", "Customer", "MP", "Hrs", "Target", "Actual", "Ach%", ...(showCost ? ["Labour Cost", "Gain/Loss"] : []), "Status", ""].map((h) => (
                       <th key={h} className="text-left px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -232,7 +236,7 @@ export default function ProductionEntryPage() {
                           {fmt(entry.achievementPct)}%
                         </span>
                       </td>
-                      <td className="px-3 py-3 text-xs text-gray-700">₹{fmt(entry.labourCost)}</td>
+                      {showCost && <td className="px-3 py-3 text-xs text-gray-700">₹{fmt(entry.labourCost)}</td>}
                       <td className="px-3 py-3 text-xs">
                         <span className={clsx("font-bold",
                           Number(entry.labourGainLoss) > 0 ? "text-green-600" :

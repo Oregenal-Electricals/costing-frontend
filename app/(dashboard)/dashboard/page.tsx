@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { getToken, getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 import { apiGetDashboard, apiGetNotificationSummary, Alert } from "@/lib/api";
 import Link from "next/link";
 
@@ -51,6 +52,7 @@ function AchievementBar({ pct }: { pct: number }) {
 export default function DashboardPage() {
   const router = useRouter();
   const user = getUser();
+  const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);

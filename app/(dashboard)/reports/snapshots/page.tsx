@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Download, Share2, ArrowLeft, X, MessageCircle, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { getToken } from "@/lib/auth";
+import { getToken, getUser } from "@/lib/auth";
+import { canSeeCost, UserRole } from "@/lib/roles";
 import {
   apiGetSnapshotDaily, apiGetSnapshotHourly,
   apiGetSnapshotProduct, apiGetSnapshotProcess, apiGetSnapshotCustomer,
