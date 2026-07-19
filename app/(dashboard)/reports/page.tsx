@@ -17,7 +17,8 @@ import ReportFilters from "@/components/reports/ReportFilters";
 import SummaryCards from "@/components/reports/SummaryCards";
 import ReportTable from "@/components/reports/ReportTable";
 import Link from "next/link";
-import { AlertTriangle, Calculator } from "lucide-react";
+import { AlertTriangle, Calculator, BarChart2 } from "lucide-react";
+import ReportChart from "@/components/reports/ReportChart";
 
 const REPORT_TYPES = [
   { key: 'daily', label: 'Daily' },
@@ -47,6 +48,7 @@ export default function ReportsPage() {
   const [filters, setFilters] = useState(defaultFilters);
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<ReportSummary>(defaultSummary);
+  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
   const [loading, setLoading] = useState(false);
   const [shifts, setShifts] = useState<ShiftItem[]>([]);
   const [processes, setProcesses] = useState<MasterItem[]>([]);
@@ -194,6 +196,19 @@ export default function ReportsPage() {
       {/* Summary */}
       <SummaryCards summary={summary} />
 
+      {/* View Toggle */}
+      <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+        {[
+          { key: 'table', label: '📋 Table' },
+          { key: 'chart', label: '📊 Chart' },
+        ].map((v) => (
+          <button key={v.key} onClick={() => setViewMode(v.key as 'table' | 'chart')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === v.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}>{v.label}</button>
+        ))}
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -201,7 +216,11 @@ export default function ReportsPage() {
             {REPORT_TYPES.find((r) => r.key === reportType)?.label} Report — {data.length} entries
           </h3>
         </div>
-        <ReportTable data={data} loading={loading} />
+        {viewMode === 'table' ? (
+          <ReportTable data={data} loading={loading} />
+        ) : (
+          <ReportChart data={data} reportType={reportType} loading={loading} />
+        )}
       </div>
     </div>
   );
