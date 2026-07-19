@@ -19,23 +19,19 @@ export default function ReportChart({ data, reportType, loading }: Props) {
   const user = getUser();
   const showCost = canSeeCost((user?.role || 'VIEWER') as UserRole);
 
-  // Aggregate data by line (daily) or by date (monthly)
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
     if (reportType === 'monthly') {
-      // Group by date
       const map: Record<string, any> = {};
       for (const e of data) {
         const date = new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
         if (!map[date]) {
-          map[date] = { label: date, target: 0, actual: 0, gainLoss: 0, profit: 0, loss: 0 };
+          map[date] = { label: date, target: 0, actual: 0, gainLoss: 0 };
         }
         map[date].target   += Number(e.targetOutput || 0);
         map[date].actual   += Number(e.actualOutput || 0);
         map[date].gainLoss += Number(e.labourGainLoss || 0);
-        if (e.status === 'PROFIT') map[date].profit++;
-        else if (e.status === 'LOSS') map[date].loss++;
       }
       return Object.values(map).map((d: any) => ({
         ...d,
@@ -74,104 +70,206 @@ export default function ReportChart({ data, reportType, loading }: Props) {
     </div>
   );
 
-  const maxActual = Math.max(...chartData.map((d: any) => d.actual));
+  // For vertical bar chart
+  const values = showCost
+    ? chartData.map((d: any) => d.gainLoss)
+    : chartData.map((d: any) => d.achievement - 100); // center at 100% for non-cost
+
+  const maxVal = Math.max(...values.map(Math.abs), 1);
+  const chartHeight = 260; // px height of chart area
+
+  const totalGainLoss = chartData.reduce((s: number, d: any) => s + d.gainLoss, 0);
+  const totalTarget   = chartData.reduce((s: number, d: any) => s + d.target, 0);
+  const totalActual   = chartData.reduce((s: number, d: any) => s + d.actual, 0);
+  const avgAch        = chartData.reduce((s: number, d: any) => s + d.achievement, 0) / chartData.length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-gray-50 rounded-xl p-3">
+          <p className="text-xs text-gray-500">Total Target</p>
+          <p className="text-lg font-bold text-gray-900">{fmt(totalTarget)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3">
+          <p className="text-xs text-gray-500">Total Actual</p>
+          <p className="text-lg font-bold text-gray-900">{fmt(totalActual)}</p>
+        </div>
+        <div className="bg-gray-50 rounded-xl p-3">
+          <p className="text-xs text-gray-500">Avg Achievement</p>
+          <p className={clsx("text-lg font-bold", avgAch >= 100 ? "text-green-600" : "text-red-600")}>
+            {fmt(avgAch, 1)}%
+          </p>
+        </div>
+        {showCost && (
+          <div className="bg-gray-50 rounded-xl p-3">
+            <p className="text-xs text-gray-500">Net Gain/Loss</p>
+            <p className={clsx("text-lg font-bold", totalGainLoss >= 0 ? "text-green-600" : "text-red-600")}>
+              {totalGainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(totalGainLoss))}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Legend */}
       <div className="flex items-center gap-6 mb-4">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-green-500" />
-          <span className="text-xs text-gray-600">PROFIT / Above Target</span>
+          <span className="text-xs text-gray-600">PROFIT</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 rounded bg-red-500" />
-          <span className="text-xs text-gray-600">LOSS / Below Target</span>
+          <span className="text-xs text-gray-600">LOSS</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded border-2 border-gray-300 bg-gray-100" />
-          <span className="text-xs text-gray-600">Target</span>
-        </div>
+        <span className="text-xs text-gray-400">
+          {showCost ? 'Y-axis: Gain/Loss (₹)' : 'Y-axis: Achievement above/below 100%'}
+        </span>
       </div>
 
-      {/* Bars */}
-      <div className="space-y-4">
-        {chartData.map((item: any, i: number) => {
-          const achPct = Math.min(item.achievement, 100);
-          const isProfit = item.status === 'PROFIT';
-          const barColor = isProfit ? 'bg-green-500' : 'bg-red-500';
-          const textColor = isProfit ? 'text-green-600' : 'text-red-600';
+      {/* Vertical bar chart */}
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: Math.max(chartData.length * 60, 400) }}>
 
-          return (
-            <div key={i} className="space-y-1">
-              {/* Label row */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-sm font-medium text-gray-800 truncate max-w-48">{item.label}</span>
-                  {item.process && reportType !== 'monthly' && (
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{item.process}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 text-xs flex-shrink-0 ml-4">
-                  <span className="text-gray-500">T: {fmt(item.target)}</span>
-                  <span className="font-bold text-gray-900">A: {fmt(item.actual)}</span>
-                  <span className={clsx("font-bold w-14 text-right", achPct >= 100 ? "text-green-600" : "text-red-600")}>
-                    {fmt(item.achievement, 1)}%
-                  </span>
-                  {showCost && (
-                    <span className={clsx("font-bold w-24 text-right", textColor)}>
-                      {isProfit ? '+' : ''}₹{fmt(Math.abs(item.gainLoss))}
-                    </span>
-                  )}
-                  <span className={clsx("text-xs px-2 py-0.5 rounded-full font-bold",
-                    isProfit ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                  )}>{item.status}</span>
-                </div>
-              </div>
+          {/* Y-axis labels + bars */}
+          <div className="flex items-end gap-0">
 
-              {/* Bar */}
-              <div className="relative h-7 bg-gray-100 rounded-lg overflow-hidden">
-                {/* Target line */}
-                <div className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10" style={{ left: '100%', transform: 'translateX(-1px)' }} />
-                {/* Actual bar */}
-                <div
-                  className={clsx("h-full rounded-lg transition-all duration-500 flex items-center px-2", barColor)}
-                  style={{ width: `${maxActual > 0 ? (item.actual / maxActual) * 100 : 0}%`, minWidth: item.actual > 0 ? '2%' : '0' }}
-                >
-                  {item.actual > 0 && (item.actual / maxActual) > 0.15 && (
-                    <span className="text-white text-xs font-bold">{fmt(item.actual)}</span>
-                  )}
-                </div>
-                {/* Achievement % overlay */}
-                <div
-                  className="absolute top-0 bottom-0 border-r-2 border-dashed border-blue-400 z-10"
-                  style={{ left: `${achPct}%` }}
-                  title={`Target: ${fmt(item.target)}`}
-                />
-              </div>
+            {/* Y-axis */}
+            <div className="flex flex-col justify-between text-right pr-2 flex-shrink-0"
+              style={{ height: chartHeight + 24, width: 70 }}>
+              <span className="text-xs text-green-600 font-medium">
+                {showCost ? `+₹${fmt(maxVal)}` : `+${fmt(maxVal, 0)}%`}
+              </span>
+              <span className="text-xs text-gray-400">0</span>
+              <span className="text-xs text-red-600 font-medium">
+                {showCost ? `-₹${fmt(maxVal)}` : `-${fmt(maxVal, 0)}%`}
+              </span>
             </div>
-          );
-        })}
+
+            {/* Bars area */}
+            <div className="flex items-end gap-1 relative flex-1"
+              style={{ height: chartHeight + 24 }}>
+
+              {/* Zero line */}
+              <div className="absolute left-0 right-0 border-t-2 border-gray-300 z-10"
+                style={{ top: chartHeight / 2 }} />
+
+              {chartData.map((item: any, i: number) => {
+                const val = showCost ? item.gainLoss : (item.achievement - 100);
+                const isPositive = val >= 0;
+                const barHeightPct = Math.abs(val) / maxVal;
+                const barPx = Math.max(barHeightPct * (chartHeight / 2), 2);
+
+                return (
+                  <div key={i} className="flex flex-col items-center flex-1 group relative"
+                    style={{ height: chartHeight + 24 }}>
+
+                    {/* Profit bar — above zero line */}
+                    <div style={{ height: chartHeight / 2, display: 'flex', alignItems: 'flex-end' }}>
+                      {isPositive && (
+                        <div
+                          className="w-full bg-green-500 hover:bg-green-400 rounded-t-md transition-all cursor-pointer relative"
+                          style={{ height: barPx, minWidth: 28 }}
+                        >
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 z-20 pointer-events-none">
+                            {item.label}<br />
+                            Ach: {fmt(item.achievement, 1)}%<br />
+                            {showCost && `+₹${fmt(item.gainLoss)}`}
+                          </div>
+                        </div>
+                      )}
+                      {!isPositive && <div style={{ height: 0 }} />}
+                    </div>
+
+                    {/* Zero line spacer */}
+                    <div style={{ height: 2 }} />
+
+                    {/* Loss bar — below zero line */}
+                    <div style={{ height: chartHeight / 2, display: 'flex', alignItems: 'flex-start' }}>
+                      {!isPositive && (
+                        <div
+                          className="w-full bg-red-500 hover:bg-red-400 rounded-b-md transition-all cursor-pointer relative"
+                          style={{ height: barPx, minWidth: 28 }}
+                        >
+                          {/* Tooltip */}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 z-20 pointer-events-none">
+                            {item.label}<br />
+                            Ach: {fmt(item.achievement, 1)}%<br />
+                            {showCost && `-₹${fmt(Math.abs(item.gainLoss))}`}
+                          </div>
+                        </div>
+                      )}
+                      {isPositive && <div style={{ height: 0 }} />}
+                    </div>
+
+                    {/* X label */}
+                    <div className="text-center mt-1" style={{ height: 24 }}>
+                      <span className="text-xs text-gray-500 truncate block" style={{ maxWidth: 56 }}>
+                        {item.label.length > 8 ? item.label.slice(0, 8) + '…' : item.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* X-axis label */}
+          <p className="text-center text-xs text-gray-400 mt-2">
+            {reportType === 'monthly' ? 'Date' : 'Line'} — Hover over bar for details
+          </p>
+        </div>
       </div>
 
-      {/* Summary */}
-      <div className="pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Target", value: fmt(chartData.reduce((s: number, d: any) => s + d.target, 0)) },
-          { label: "Total Actual", value: fmt(chartData.reduce((s: number, d: any) => s + d.actual, 0)) },
-          { label: "Avg Achievement", value: `${fmt(chartData.reduce((s: number, d: any) => s + d.achievement, 0) / chartData.length, 1)}%`,
-            color: chartData.reduce((s: number, d: any) => s + d.achievement, 0) / chartData.length >= 100 ? "text-green-600" : "text-red-600" },
-          ...(showCost ? [{
-            label: "Net Gain/Loss",
-            value: `${chartData.reduce((s: number, d: any) => s + d.gainLoss, 0) >= 0 ? '+' : ''}₹${fmt(Math.abs(chartData.reduce((s: number, d: any) => s + d.gainLoss, 0)))}`,
-            color: chartData.reduce((s: number, d: any) => s + d.gainLoss, 0) >= 0 ? "text-green-600" : "text-red-600",
-          }] : []),
-        ].map((card: any) => (
-          <div key={card.label} className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-500">{card.label}</p>
-            <p className={clsx("text-lg font-bold mt-0.5", card.color || "text-gray-900")}>{card.value}</p>
-          </div>
-        ))}
+      {/* Detail table below chart */}
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-left px-3 py-2 font-semibold text-gray-500">
+                {reportType === 'monthly' ? 'Date' : 'Line'}
+              </th>
+              {reportType !== 'monthly' && (
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">Process</th>
+              )}
+              <th className="text-right px-3 py-2 font-semibold text-gray-500">Target</th>
+              <th className="text-right px-3 py-2 font-semibold text-gray-500">Actual</th>
+              <th className="text-right px-3 py-2 font-semibold text-gray-500">Ach%</th>
+              {showCost && (
+                <th className="text-right px-3 py-2 font-semibold text-gray-500">Gain/Loss</th>
+              )}
+              <th className="text-center px-3 py-2 font-semibold text-gray-500">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {chartData.map((item: any, i: number) => (
+              <tr key={i} className="hover:bg-gray-50">
+                <td className="px-3 py-2 font-medium text-gray-800">{item.label}</td>
+                {reportType !== 'monthly' && (
+                  <td className="px-3 py-2 text-gray-500">{item.process}</td>
+                )}
+                <td className="px-3 py-2 text-right text-gray-600">{fmt(item.target)}</td>
+                <td className="px-3 py-2 text-right font-bold text-gray-900">{fmt(item.actual)}</td>
+                <td className={clsx("px-3 py-2 text-right font-bold",
+                  item.achievement >= 100 ? "text-green-600" : "text-red-600")}>
+                  {fmt(item.achievement, 1)}%
+                </td>
+                {showCost && (
+                  <td className={clsx("px-3 py-2 text-right font-bold",
+                    item.gainLoss >= 0 ? "text-green-600" : "text-red-600")}>
+                    {item.gainLoss >= 0 ? '+' : ''}₹{fmt(Math.abs(item.gainLoss))}
+                  </td>
+                )}
+                <td className="px-3 py-2 text-center">
+                  <span className={clsx("text-xs px-2 py-0.5 rounded-full font-bold",
+                    item.status === 'PROFIT' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                  )}>{item.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
