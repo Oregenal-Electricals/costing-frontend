@@ -8,6 +8,7 @@ import { getToken, getUser } from "@/lib/auth";
 import { canSeeCost, UserRole } from "@/lib/roles";
 import { apiGetLatestCostPerPiece, apiGetActiveProducts, MasterItem } from "@/lib/api";
 
+function safe(n: any) { return isNaN(Number(n)) || !isFinite(Number(n)) ? 0 : Number(n); }
 function fmt(n: number, d = 2) {
   return Number(n).toLocaleString('en-IN', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
@@ -93,16 +94,16 @@ export default function CompleteProductCostPage() {
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <p className="text-white/70 text-xs">Target ₹/Piece</p>
-                  <p className="text-2xl font-black text-white">₹{fmt(data.summary.totalTargetCPP)}</p>
+                  <p className="text-2xl font-black text-white">₹{fmt(safe(data.summary.totalTargetCPP))}</p>
                 </div>
                 <div className="text-center bg-white/20 rounded-xl px-5 py-3">
                   <p className="text-white/70 text-xs">Actual ₹/Piece</p>
-                  <p className="text-3xl font-black text-white">₹{fmt(data.summary.totalCPP)}</p>
+                  <p className="text-3xl font-black text-white">₹{fmt(safe(data.summary.totalCPP))}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-white/70 text-xs">Variance</p>
                   <p className={clsx("text-xl font-black", isProfit ? "text-green-300" : "text-red-300")}>
-                    {isProfit ? '-' : '+'}₹{fmt(Math.abs(data.summary.variance))}
+                    {isProfit ? '-' : '+'}₹{fmt(safe(Math.abs(safe(data.summary.variance))))}
                   </p>
                   <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">
                     {isProfit ? '✅ PROFIT' : '❌ LOSS'}
@@ -135,16 +136,16 @@ export default function CompleteProductCostPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Target Output</span>
-                    <span className="font-medium text-gray-700">{fmt(p.totalTarget, 0)} pcs</span>
+                    <span className="font-medium text-gray-700">{fmt(safe(p.totalTarget), 0)} pcs</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Actual Output</span>
-                    <span className="font-bold text-gray-900">{fmt(p.totalOutput, 0)} pcs</span>
+                    <span className="font-bold text-gray-900">{fmt(safe(p.totalOutput), 0)} pcs</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Achievement</span>
                     <span className={clsx("font-bold", p.achievementPct >= 100 ? "text-green-600" : "text-red-600")}>
-                      {fmt(p.achievementPct, 1)}%
+                      {fmt(safe(p.achievementPct), 1)}%
                     </span>
                   </div>
 
@@ -158,12 +159,12 @@ export default function CompleteProductCostPage() {
                       <div className="border-t border-gray-100 pt-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Total Cost</span>
-                          <span className="font-medium text-gray-700">₹{fmt(p.totalCost, 0)}</span>
+                          <span className="font-medium text-gray-700">₹{fmt(safe(p.totalCost), 0)}</span>
                         </div>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Target ₹/Piece</span>
-                        <span className="font-bold text-green-600">₹{fmt(p.targetCPP)}</span>
+                        <span className="font-bold text-green-600">₹{fmt(safe(p.targetCPP))}</span>
                       </div>
 
                       {/* Cost per piece highlight */}
@@ -172,7 +173,7 @@ export default function CompleteProductCostPage() {
                         <p className="text-xs text-gray-500 mb-1">Cost per Piece</p>
                         <p className={clsx("text-2xl font-black",
                           p.status === 'PROFIT' ? "text-green-700" : "text-red-700")}>
-                          ₹{fmt(p.actualCPP)}
+                          ₹{fmt(safe(p.actualCPP))}
                         </p>
                         <span className={clsx("text-xs font-bold",
                           p.status === 'PROFIT' ? "text-green-600" : "text-red-600")}>
@@ -184,11 +185,11 @@ export default function CompleteProductCostPage() {
                       <div>
                         <div className="flex justify-between text-xs text-gray-400 mb-1">
                           <span>Share of total cost</span>
-                          <span>{fmt((p.actualCPP / data.summary.totalCPP) * 100, 1)}%</span>
+                          <span>{fmt(safe(data.summary.totalCPP) > 0 ? (safe(p.actualCPP) / safe(data.summary.totalCPP)) * 100 : 0, 1)}%</span>
                         </div>
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div className="h-full bg-blue-500 rounded-full"
-                            style={{ width: `${(p.actualCPP / maxCPP) * 100}%` }} />
+                            style={{ width: `${maxCPP > 0 ? (safe(p.actualCPP) / maxCPP) * 100 : 0}%` }} />
                         </div>
                       </div>
                     </>
@@ -224,11 +225,11 @@ export default function CompleteProductCostPage() {
                       <td className="px-4 py-3 font-bold text-gray-900">{p.process.name}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{p.latestDate}</td>
                       <td className="px-4 py-3 text-right font-bold text-blue-700">{p.totalMP}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">{fmt(p.totalOutput, 0)}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">₹{fmt(p.totalCost, 0)}</td>
-                      <td className="px-4 py-3 text-right bg-orange-50 font-medium text-orange-700">₹{fmt(p.allocatedCost, 0)}</td>
-                      <td className="px-4 py-3 text-right bg-green-50 font-bold text-green-700">₹{fmt(p.targetCPP)}</td>
-                      <td className="px-4 py-3 text-right bg-blue-50 font-bold text-blue-700">₹{fmt(p.actualCPP)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{fmt(safe(p.totalOutput), 0)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">₹{fmt(safe(p.totalCost), 0)}</td>
+                      <td className="px-4 py-3 text-right bg-orange-50 font-medium text-orange-700">₹{fmt(safe(p.allocatedCost), 0)}</td>
+                      <td className="px-4 py-3 text-right bg-green-50 font-bold text-green-700">₹{fmt(safe(p.targetCPP))}</td>
+                      <td className="px-4 py-3 text-right bg-blue-50 font-bold text-blue-700">₹{fmt(safe(p.actualCPP))}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={clsx("text-xs px-2 py-0.5 rounded-full font-bold",
                           p.status === 'PROFIT' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
@@ -244,8 +245,8 @@ export default function CompleteProductCostPage() {
                     <td colSpan={5} className="px-4 py-3 text-sm">
                       COMPLETE COST PER PIECE — {data.product.name}
                     </td>
-                    <td className="px-4 py-3 text-right text-lg">₹{fmt(data.summary.totalTargetCPP)}</td>
-                    <td className="px-4 py-3 text-right text-xl">₹{fmt(data.summary.totalCPP)}</td>
+                    <td className="px-4 py-3 text-right text-lg">₹{fmt(safe(data.summary.totalTargetCPP))}</td>
+                    <td className="px-4 py-3 text-right text-xl">₹{fmt(safe(data.summary.totalCPP))}</td>
                     <td className="px-4 py-3 text-center text-sm">
                       {isProfit ? '✅ PROFIT' : '❌ LOSS'}
                     </td>
