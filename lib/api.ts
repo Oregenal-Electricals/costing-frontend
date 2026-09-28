@@ -1028,3 +1028,8 @@ export async function apiGetCompleteProductCost(
     token
   );
 }
+
+// ─── LATEST COST PER PIECE ───────────────────────────
+export async function apiGetLatestCostPerPiece(token: string, productId: number) {
+  return apiFetch<any>(`/api/v1/reports/latest-cost-per-piece?productId=${productId}`, token);
+}
