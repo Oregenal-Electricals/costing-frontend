@@ -175,10 +175,7 @@ export default function CompleteProductCostPage() {
                           p.status === 'PROFIT' ? "text-green-700" : "text-red-700")}>
                           ₹{fmt(safe(p.processCPP))}
                         </p>
-                        <span className={clsx("text-xs font-bold",
-                          p.status === 'PROFIT' ? "text-green-600" : "text-red-600")}>
-                          {p.status === 'PROFIT' ? '✅ PROFIT' : '❌ LOSS'}
-                        </span>
+  
                       </div>
 
                       {/* Bar showing proportion */}
@@ -231,9 +228,8 @@ export default function CompleteProductCostPage() {
                       <td className="px-4 py-3 text-right bg-green-50 font-bold text-green-700">₹{fmt(safe(p.processCPP))}</td>
                       <td className="px-4 py-3 text-right bg-blue-50 font-bold text-blue-700">₹{fmt(safe(p.processCPP))}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={clsx("text-xs px-2 py-0.5 rounded-full font-bold",
-                          p.status === 'PROFIT' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-                          {p.status}
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">
+                          OK
                         </span>
                       </td>
                     </tr>
