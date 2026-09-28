@@ -88,7 +88,7 @@ export default function CompleteProductCostPage() {
               <div>
                 <p className="text-white/70 text-xs uppercase tracking-wider">Complete Product Cost</p>
                 <p className="text-white font-black text-2xl mt-0.5">{data.product.name}</p>
-                <p className="text-white/70 text-sm">Latest production data per process</p>
+                <p className="text-white/70 text-sm">Last Packing: {data.packingDate} → {fmt(data.finalOutput, 0)} pcs finished</p>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-center">
@@ -148,6 +148,11 @@ export default function CompleteProductCostPage() {
                     </span>
                   </div>
 
+                  {p.wipEntries > 0 && (
+                    <div className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-1.5">
+                      ⚠️ Includes {p.wipEntries} WIP entry cost
+                    </div>
+                  )}
                   {showCost && (
                     <>
                       <div className="border-t border-gray-100 pt-3">
@@ -164,7 +169,7 @@ export default function CompleteProductCostPage() {
                       {/* Cost per piece highlight */}
                       <div className={clsx("rounded-xl p-3 text-center mt-2",
                         p.status === 'PROFIT' ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200")}>
-                        <p className="text-xs text-gray-500 mb-1">Actual ₹/Piece</p>
+                        <p className="text-xs text-gray-500 mb-1">Cost per Piece</p>
                         <p className={clsx("text-2xl font-black",
                           p.status === 'PROFIT' ? "text-green-700" : "text-red-700")}>
                           ₹{fmt(p.actualCPP)}
@@ -206,7 +211,8 @@ export default function CompleteProductCostPage() {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Date</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">MP</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Output</th>
-                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Total Cost</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Batch Cost</th>
+                    <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase bg-orange-50">Allocated Cost</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-green-600 uppercase bg-green-50">Target ₹/pc</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-blue-600 uppercase bg-blue-50">Actual ₹/pc</th>
                     <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
@@ -220,6 +226,7 @@ export default function CompleteProductCostPage() {
                       <td className="px-4 py-3 text-right font-bold text-blue-700">{p.totalMP}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{fmt(p.totalOutput, 0)}</td>
                       <td className="px-4 py-3 text-right text-gray-700">₹{fmt(p.totalCost, 0)}</td>
+                      <td className="px-4 py-3 text-right bg-orange-50 font-medium text-orange-700">₹{fmt(p.allocatedCost, 0)}</td>
                       <td className="px-4 py-3 text-right bg-green-50 font-bold text-green-700">₹{fmt(p.targetCPP)}</td>
                       <td className="px-4 py-3 text-right bg-blue-50 font-bold text-blue-700">₹{fmt(p.actualCPP)}</td>
                       <td className="px-4 py-3 text-center">
