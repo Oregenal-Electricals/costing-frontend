@@ -31,7 +31,7 @@ export default function ReportTable({ data, loading }: Props) {
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
-            {["Date", "Shift", "Slot", "Process", "Line", "Product", "Customer", "MP", "Target", "Actual", "Diff", "Ach%", ...(showCost ? ["Labour Cost", "Gain/Loss"] : []), "Status", "By"].map((h) => (
+            {["Date", "Shift", "Slot", "Process", "Line", "Product", "Customer", "MP", "Hrs", "Target", "Actual", "Diff", "Ach%", ...(showCost ? ["Labour Cost", "Gain/Loss"] : []), "Status", "By"].map((h) => (
               <th key={h} className="text-left px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -49,6 +49,7 @@ export default function ReportTable({ data, loading }: Props) {
               <td className="px-3 py-2.5 text-gray-700">{entry.product?.name}</td>
               <td className="px-3 py-2.5 text-gray-700">{entry.customer?.name}</td>
               <td className="px-3 py-2.5 font-bold text-blue-700">{entry.manpowerCount}</td>
+              <td className="px-3 py-2.5 text-gray-600">{entry.shiftHours}</td>
               <td className="px-3 py-2.5 text-gray-700">{fmt(entry.targetOutput, 0)}</td>
               <td className="px-3 py-2.5 font-bold text-gray-900">{fmt(entry.actualOutput, 0)}</td>
               <td className={clsx("px-3 py-2.5 font-medium", Number(entry.difference) >= 0 ? "text-green-600" : "text-red-600")}>
