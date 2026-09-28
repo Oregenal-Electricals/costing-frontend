@@ -17,7 +17,7 @@ import ReportFilters from "@/components/reports/ReportFilters";
 import SummaryCards from "@/components/reports/SummaryCards";
 import ReportTable from "@/components/reports/ReportTable";
 import Link from "next/link";
-import { AlertTriangle, Calculator, BarChart2 } from "lucide-react";
+import { AlertTriangle, Calculator, BarChart2, Package } from "lucide-react";
 import ReportChart from "@/components/reports/ReportChart";
 
 const REPORT_TYPES = [
@@ -154,6 +154,11 @@ export default function ReportsPage() {
             <FileSpreadsheet size={16} />
             Excel
           </button>
+          <Link href="/reports/complete-cost"
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
+            <Package size={16} />
+            Complete Product Cost
+          </Link>
           <Link href="/reports/per-piece"
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <Calculator size={16} />

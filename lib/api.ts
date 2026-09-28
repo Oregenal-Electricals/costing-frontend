@@ -1015,3 +1015,16 @@ export async function apiGetSpareMPReport(
 export async function apiGetPerPieceCostReport(token: string, q?: ReportQuery) {
   return apiFetch<any>(`/api/v1/reports/per-piece-cost?${buildReportQuery(q)}`, token);
 }
+
+// ─── COMPLETE PRODUCT COST REPORT ────────────────────
+export async function apiGetCompleteProductCost(
+  token: string,
+  productId: number,
+  dateFrom: string,
+  dateTo: string,
+) {
+  return apiFetch<any>(
+    `/api/v1/reports/complete-product-cost?productId=${productId}&dateFrom=${dateFrom}&dateTo=${dateTo}`,
+    token
+  );
+}
