@@ -24,7 +24,8 @@ export function exportToExcel(
 
   const dataRows = data.map((row) =>
     columns.map((col) => {
-      const val = row[col.key];
+      // Support nested keys like "shift.name"
+      const val = col.key.split('.').reduce((obj: any, key) => obj?.[key], row);
       return typeof val === 'object' && val !== null ? JSON.stringify(val) : val ?? '';
     })
   );
